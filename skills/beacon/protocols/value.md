@@ -49,7 +49,7 @@ believe it, it's a `hypothesis`.
 For each value, list the Beacon **pains** it answers (`pains: ["P1"]`).
 Capabilities with no mapped value, and values that answer no observed pain,
 are findings in their own right:
-- a capability that no mapped value may not deserve airtime;
+- a capability with no mapped value may not deserve airtime (it may still help users; the map just found no evidence that it does);
 - a value that answers no observed pain is not yet a message, whatever its
   level.
 
@@ -82,7 +82,8 @@ section), then:
 
 ```bash
 python3 "$SKILL_DIR/scripts/validate.py" --value .beacon/value.json
-python3 "$SKILL_DIR/scripts/render.py" .beacon/launch.json -o .beacon/report.html   # value.json is picked up automatically
+python3 "$SKILL_DIR/scripts/render.py" --value .beacon/value.json -o .beacon/report.html
+# if .beacon/launch.json exists, the same report also includes "Where is the pull?"
 ```
 
 Tell the user:
