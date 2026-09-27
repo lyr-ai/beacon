@@ -175,13 +175,13 @@ def value_section(v: dict, launch: dict | None) -> str:
             col = "var(--ink)" if p["id"] in linked_p else "var(--cinnabar)"
             svg.append(f'<circle cx="{rx - 4}" cy="{y}" r="4.5" fill="{col}"/>')
             svg.append(f'<text x="{rx + 6}" y="{y + 4}" font-family="Newsreader,Georgia,serif" font-size="15" fill="{col}">{e(txt)}</text>')
-            svg.append(f'<text x="{rx + 6}" y="{y + 18}" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="var(--muted)">{e(p["id"])} · {n} people{"" if p["id"] in linked_p else " · no value answers this"}</text>')
+            svg.append(f'<text x="{rx + 6}" y="{y + 18}" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="var(--muted)">{e(p["id"])} · {n} people{"" if p["id"] in linked_p else " · no mapped value answers this"}</text>')
         svg.append(f'<text x="{lx - 6}" y="12" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10.5" letter-spacing="1.5" fill="var(--muted)">WHAT WE PROVIDE</text>')
         svg.append(f'<text x="{rx + 6}" y="12" font-family="IBM Plex Mono,monospace" font-size="10.5" letter-spacing="1.5" fill="var(--muted)">WHAT PEOPLE ASK FOR</text>')
         svg.append("</svg>")
         out.append("<h2>Inside ↔ outside: which values meet observed pain</h2>" + "".join(svg)
                    + '<div class="legend"><span>node: ● demonstrated · ◐ supported · ○ hypothesis</span><span>a line = the value answers that pain</span>'
-                   '<span style="color:var(--cinnabar)">red = a pain no value answers</span></div>')
+                   '<span style="color:var(--cinnabar)">red = a pain no mapped value answers</span></div>')
 
     # coverage
     cov = {c: [] for c in caps}
@@ -189,7 +189,7 @@ def value_section(v: dict, launch: dict | None) -> str:
         for c in x.get("capabilities") or []:
             cov.setdefault(c, []).append(x["id"])
     head = "".join(f'<th title="{e(x.get("outcome"))}">{e(x["id"])}</th>' for x in order)
-    orphan_tag = ' <span class="fig" style="color:var(--cinnabar)">supports no value</span>'
+    orphan_tag = ' <span class="fig" style="color:var(--cinnabar)">no mapped value</span>'
     rows = ""
     for cid, c in caps.items():
         used = cov.get(cid, [])

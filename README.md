@@ -22,14 +22,14 @@ strongly it can be claimed:
 
 Then it connects inside to outside:
 - which values answer pains people have actually posted;
-- which capabilities support no value at all;
-- which pains no value answers.
+- which capabilities have no mapped value (no evidence yet that they help);
+- which pains no mapped value answers.
 
 It ends with a recommended first screen: what to lead with, what to support
 it with, what to keep under Advanced, and **what to stop saying**, with the
 line where each unsupported claim is made.
 
-[![Beacon value map for TypedMem: lead with "know which value is current without deleting the old one" (demonstrated: LongMemEval history 0/11 to 11/11); a bridge linking values to observed pains; recall and HTTP support no value; stop saying "hallucinations"](docs/example-value.png)](docs/example-value.png)
+[![Beacon value map for TypedMem: lead with "know which value is current without deleting the old one" (demonstrated: LongMemEval history 0/11 to 11/11); a bridge linking values to observed pains; recall and HTTP have no mapped value; stop saying "hallucinations"](docs/example-value.png)](docs/example-value.png)
 
 ## `/beacon`: where is the pull
 

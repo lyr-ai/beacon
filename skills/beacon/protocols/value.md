@@ -47,9 +47,9 @@ believe it, it's a `hypothesis`.
 ## Phase 3: Connect to the outside (if `.beacon/launch.json` exists)
 
 For each value, list the Beacon **pains** it answers (`pains: ["P1"]`).
-Capabilities that support no value, and values that answer no observed pain,
+Capabilities with no mapped value, and values that answer no observed pain,
 are findings in their own right:
-- a capability that supports no value may not deserve airtime;
+- a capability that no mapped value may not deserve airtime;
 - a value that answers no observed pain is not yet a message, whatever its
   level.
 
@@ -88,6 +88,6 @@ python3 "$SKILL_DIR/scripts/render.py" .beacon/launch.json -o .beacon/report.htm
 Tell the user:
 - the lead value and its proof;
 - how many values are demonstrated, supported and hypothesis;
-- capabilities that support no value;
+- capabilities with no mapped value;
 - values that answer no observed pain;
 - any `stop_saying` items.

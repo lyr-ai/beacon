@@ -186,7 +186,7 @@ def test_coverage_is_derived_and_finds_orphans():
 def test_render_value_map_bridge_and_first_screen():
     html = render.render(copy.deepcopy(EX), [], copy.deepcopy(EXV))
     assert html.index("What value does typedmem create?") < html.index("Where is the pull for typedmem?")
-    assert "Inside ↔ outside" in html and "no value answers this" in html      # P3 is unanswered
-    assert "supports no value" in html and "Stop saying" in html
+    assert "Inside ↔ outside" in html and "no mapped value answers this" in html      # P3 is unanswered
+    assert "no mapped value" in html and "Stop saying" in html
     only = render.render(None, [], copy.deepcopy(EXV))
     assert "What value does typedmem create?" in only and "Where is the pull" not in only

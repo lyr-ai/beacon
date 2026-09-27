@@ -299,7 +299,7 @@ def main(argv: list[str]) -> int:
             tally = ", ".join(f"{sum(v.get('level') == l for v in vals)} {l}" for l in LEVELS)
             orphan_caps = [c for c, vs in coverage(doc).items() if not vs]
             no_pain = [v["id"] for v in vals if not v.get("pains")]
-            print(f"ok: {len(vals)} values ({tally}); capabilities supporting no value: {orphan_caps or 'none'}; "
+            print(f"ok: {len(vals)} values ({tally}); capabilities with no mapped value: {orphan_caps or 'none'}; "
                   f"values answering no observed pain: {no_pain or 'none'}")
         return 1 if errs else 0
     path = Path(argv[0])
