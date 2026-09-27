@@ -173,6 +173,14 @@ def validate(doc: dict, repo: Path, raw: dict[str, dict]) -> list[str]:
 
 
 LEVELS = ("demonstrated", "supported", "hypothesis")
+MAX_TOP = 7
+
+
+def executed(x: dict) -> bool:
+    """A confirmed proof was run: a command with exit 0 and its output, or a passing CI run at a commit."""
+    ran = x.get("command") and x.get("exit_code") == 0 and (x.get("output") or "").strip()
+    ci = (x.get("ci_run") or "").startswith("http") and x.get("commit")
+    return bool(ran or ci)
 
 
 def has_loc(ev: dict) -> bool:
@@ -187,6 +195,9 @@ def validate_value(doc: dict, repo: Path, launch: dict | None) -> list[str]:
     prob = doc.get("problem") or {}
     if not (prob.get("text") or "").strip():
         errs.append("problem: missing text")
+    aud = norm(doc.get("audience"))
+    if aud in GENERIC_WHO or len(aud) < 12:
+        errs.append("audience: name one primary audience, specific enough to find them")
     for j, ev in enumerate(prob.get("evidence") or []):
         why = locator_ok(ev, repo) if ev.get("file") else None
         if why:
@@ -225,6 +236,9 @@ def validate_value(doc: dict, repo: Path, launch: dict | None) -> list[str]:
         proof = v.get("proof") or []
         confirmed = [x for x in proof if x.get("level") == "confirmed"]
         for j, x in enumerate(proof):
+            if x.get("level") == "confirmed" and not executed(x):
+                errs.append(f"{w}.proof[{j}]: confirmed means executed: give command + exit_code 0 + output, "
+                            "or ci_run URL + commit; a test you read is observed")
             if not has_loc(x):
                 errs.append(f"{w}.proof[{j}]: needs a locator (file/url/commit/issue/command)")
             elif x.get("file"):
@@ -239,6 +253,17 @@ def validate_value(doc: dict, repo: Path, launch: dict | None) -> list[str]:
             for pid in v.get("pains") or []:
                 if pid not in pains:
                     errs.append(f"{w}: unknown pain {pid} (not in .beacon/launch.json)")
+    for v in vals.values():
+        par = v.get("parent")
+        if par is None:
+            continue
+        if par not in vals:
+            errs.append(f"value {v.get('id')}: unknown parent {par}")
+        elif vals[par].get("parent"):
+            errs.append(f"value {v.get('id')}: parent {par} is itself a child; one level of grouping only")
+    top = [v for v in vals.values() if not v.get("parent")]
+    if len(top) > MAX_TOP:
+        errs.append(f"values: {len(top)} top-level values; at most {MAX_TOP}. Group related ones under a parent")
     fs = doc.get("first_screen") or {}
     if fs:
         lead = fs.get("lead") or []
@@ -251,6 +276,22 @@ def validate_value(doc: dict, repo: Path, launch: dict | None) -> list[str]:
             for vid in fs.get(part) or []:
                 if vid not in vals:
                     errs.append(f"first_screen.{part}: unknown value {vid}")
+                elif vals[vid].get("parent"):
+                    errs.append(f"first_screen.{part}: {vid} is grouped under {vals[vid]['parent']}; place the parent")
+        placed = [vid for part in ("lead", "support", "trust") for vid in fs.get(part) or []]
+        for vid in sorted({x for x in placed if placed.count(x) > 1}):
+            errs.append(f"first_screen: {vid} has more than one role; each value gets one")
+        lo = 2 if len(top) >= 4 else 1
+        if not lo <= len(fs.get("support") or []) <= 3:
+            errs.append(f"first_screen.support: {lo}–3 values")
+        if not 1 <= len(fs.get("trust") or []) <= 2:
+            errs.append("first_screen.trust: 1–2 values")
+        lr = fs.get("lead_reason") or {}
+        dif = lr.get("differentiation") or {}
+        if not (lr.get("relevance") or "").strip():
+            errs.append("first_screen.lead_reason: say why the lead is relevant to the audience (relevance)")
+        if not ((dif.get("alternative") or "").strip() and (dif.get("why") or "").strip()):
+            errs.append("first_screen.lead_reason: differentiation needs the obvious alternative and why this instead")
         for a in fs.get("advanced") or []:
             if a.get("capability") not in caps:
                 errs.append(f"first_screen.advanced: unknown capability {a.get('capability')}")

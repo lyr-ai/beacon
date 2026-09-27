@@ -26,8 +26,13 @@ e = lambda s: html.escape(str(s if s is not None else ""))
 ROLES = ("lead", "support", "trust")
 
 
-def short(text: str | None, words: int = 6) -> str:
+GLYPH = {"demonstrated": "●", "supported": "◐", "hypothesis": "○"}
+
+
+def short(text: str | None, words: int = 6, chars: int | None = None) -> str:
     ws = (text or "").split()
+    while chars and len(ws[:words]) > 1 and len(" ".join(ws[:words])) > chars:
+        words -= 1
     return " ".join(ws[:words]) + ("…" if len(ws) > words else "")
 
 
@@ -85,6 +90,7 @@ CSS = """
 .evidence>summary{font:600 15px var(--sans);cursor:pointer;padding:8px 0}
 .funnel{display:flex;flex-direction:column;align-items:center;gap:6px}
 .fn{border:1.5px solid var(--ink);border-radius:4px;padding:10px 18px;text-align:center;font:400 17px/1.35 var(--serif);cursor:pointer}
+.because{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.5px;color:var(--muted);margin:-2px 0 2px}.because b{color:var(--sage);font-weight:500}
 .fn.lead{border:2.5px solid var(--sage);font-size:23px;padding:14px 26px;max-width:620px}
 .fn.support,.fn.trust{max-width:520px}.fn.adv{border-style:dashed;color:var(--muted);font-size:14px;max-width:480px}
 .fn .r{display:block;font:600 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
@@ -119,6 +125,23 @@ def ordered_values(v: dict) -> tuple[list[dict], dict]:
     return vals, role
 
 
+def collapse(v: dict) -> dict:
+    """The scenes show top-level values only; a parent carries its children's capabilities and pains."""
+    vals = v.get("values") or []
+    kids = {}
+    for x in vals:
+        if x.get("parent"):
+            kids.setdefault(x["parent"], []).append(x)
+    top = []
+    for x in vals:
+        if x.get("parent"):
+            continue
+        ch = kids.get(x["id"], [])
+        uniq = lambda key: list(dict.fromkeys((x.get(key) or []) + [i for c in ch for i in c.get(key) or []]))
+        top.append(dict(x, children=ch, capabilities=uniq("capabilities"), pains=uniq("pains")))
+    return dict(v, values=top)
+
+
 # ── detail templates (opened in the side panel) ─────────────────────────────
 def details(v: dict, launch: dict | None, loc) -> str:
     web = f"https://github.com/{v['product']['repo']}" if v.get("product", {}).get("repo") else None
@@ -134,9 +157,16 @@ def details(v: dict, launch: dict | None, loc) -> str:
                        + " ".join(loc(ev, web) for ev in caps.get(c, {}).get("evidence") or []) + "</li>"
                        for c in x.get("capabilities") or [])
         pl = "".join(f"<li>{e(pains[p]['statement'])} ({authors(pains[p], by_id)} people)</li>" for p in x.get("pains") or [] if p in pains)
+        kids = "".join(f"<li>{GLYPH.get(c.get('level'), '')} {e(c.get('outcome'))} <i>({e(c.get('level'))})</i>"
+                       + "".join(f"<br><small>{e(q.get('claim'))} {loc(q, web) if (q.get('file') or q.get('url')) else ''}</small>" for q in c.get("proof") or [])
+                       + "</li>" for c in x.get("children") or [])
+        lr = (v.get("first_screen") or {}).get("lead_reason") if x["id"] in ((v.get("first_screen") or {}).get("lead") or []) else None
+        why_lead = (f"<h4>Why it leads</h4><p>{e(lr.get('relevance'))}</p><p>Instead of {e((lr.get('differentiation') or {}).get('alternative'))}: "
+                    f"{e((lr.get('differentiation') or {}).get('why'))}</p>") if lr else ""
         out.append(f"""<template id="d-{e(x['id'])}"><div class="act">{e(x['id'])} · {e(x.get('level'))}</div>
-<h3>{e(x.get('outcome'))}</h3><p>{e(x.get('why'))}</p>
-<h4>Proof</h4>{f'<ul>{proof}</ul>' if proof else '<p>No outside measurement.</p>'}
+<h3>{e(x.get('outcome'))}</h3><p>{e(x.get('why'))}</p>{why_lead}
+{f'<h4>Includes</h4><ul>{kids}</ul>' if kids else ''}
+<h4>Proof</h4>{f'<ul>{proof}</ul>' if proof else '<p>No proof recorded.</p>'}
 <h4>Capabilities</h4><ul>{capl}</ul>
 <h4>Pain it answers</h4>{f'<ul>{pl}</ul>' if pl else '<p>None observed yet.</p>'}</template>""")
     for p in pains.values():
@@ -191,6 +221,8 @@ def scene_value(v: dict, name: str) -> str:
         svg.append(f'<g class="hit" data-d="{e(x["id"])}">{node(px, py, r, x.get("level"), color)}'
                    f'<text class="lbl" x="{px}" y="{ly}" text-anchor="middle" font-family="Newsreader,Georgia,serif" '
                    f'font-size="{fs}" fill="{color if x not in rest else "var(--muted)"}">{tspans(px, lines, round(fs * 1.2))}</text></g>')
+        if x.get("children"):
+            svg.append(f'<text x="{px + r + 4}" y="{py + 4}" font-family="IBM Plex Mono,monospace" font-size="{max(10, fs - 5)}" fill="var(--muted)">+{len(x["children"])}</text>')
         if x in lead or x in mid:
             svg.append(f'<text x="{px}" y="{py - r - 8}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" letter-spacing="1.5" fill="var(--muted)">{e(role.get(x["id"], "").upper())}</text>')
     svg.append("</svg>")
@@ -198,7 +230,7 @@ def scene_value(v: dict, name: str) -> str:
     return (f'<section class="scene"><div class="act">1 · Value</div><h2>What {e(name)} gives a user</h2>'
             f'<p class="say">{e(lead_txt)}</p>' + "".join(svg)
             + '<div class="key"><span>● demonstrated</span><span>◐ supported</span><span>○ hypothesis</span>'
-              '<span>size = role</span><span>click a node for its proof</span></div></section>')
+              '<span>size = role</span><span>+N = grouped values</span><span>click a node for its proof</span></div></section>')
 
 
 # ── scene 2: PULL bridge ────────────────────────────────────────────────────
@@ -229,7 +261,7 @@ def scene_pull(v: dict, launch: dict | None) -> str:
         y = ly[x["id"]]
         col = "var(--ink)" if x.get("pains") else "var(--muted)"
         s.append(f'<g class="hit" data-d="{e(x["id"])}"><text class="lbl" x="{lx - 12}" y="{y + 5}" text-anchor="end" font-family="Newsreader,Georgia,serif" '
-                 f'font-size="{17 if role.get(x["id"]) == "lead" else 15}" fill="{col}">{e(x.get("label") or short(x.get("outcome"), 8))}</text>'
+                 f'font-size="{17 if role.get(x["id"]) == "lead" else 15}" fill="{col}">{e(x.get("label") or short(x.get("outcome"), 8, 32 if role.get(x["id"]) == "lead" else 36))}</text>'
                  f'{node(lx + 4, y, 6, x.get("level"), col)}</g>')
     for p in pains:
         y = ry[p["id"]]
@@ -303,13 +335,17 @@ def scene_story(v: dict) -> str:
         f.append('<div class="arrow">↓</div>')
         f.append('<div class="fn adv"><span class="r">advanced, don\'t lead</span>'
                  + " · ".join(e(short(caps.get(a["capability"], {}).get("name", a["capability"]), 4)) for a in fs["advanced"]) + "</div>")
+    lr = fs.get("lead_reason") or {}
+    alt = (lr.get("differentiation") or {}).get("alternative")
+    if alt and len(f) > 1:
+        f.insert(2, f'<div class="because">chosen over <b>{e(short(alt, 8))}</b></div>')
     f.append("</div>")
     stop = ""
     if fs.get("stop_saying"):
         stop = ('<div class="stop"><span class="r">✕ STOP SAYING</span>'
                 + "".join(f'<div><s>“{e(short(x.get("claim"), 8))}”</s></div>' for x in fs["stop_saying"]) + "</div>")
     return (f'<section class="scene"><div class="act">4 · Story</div><h2>What the first screen should say</h2>'
-            f'<p class="say">Lead with the strongest-proven value; keep the rest in order; drop what the evidence doesn\'t support.</p>'
+            f'<p class="say">Lead with why people choose it; proof sets how strongly to say it; drop what the evidence doesn\'t support.</p>'
             f'<div class="storyrow">{"".join(f)}{stop}</div></section>')
 
 
@@ -336,6 +372,7 @@ def scene_move(launch: dict | None) -> str:
 
 def render_v2(value: dict, launch: dict | None, evidence_html: str, loc, base_css: str) -> str:
     name = value.get("product", {}).get("name", "this project")
+    value = collapse(value)
     body = [scene_value(value, name), scene_pull(value, launch), scene_coverage(value), scene_story(value), scene_move(launch)]
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Beacon · {e(name)}</title>

@@ -74,6 +74,8 @@
 {
   "version": 1,
   "product": {"name": "typedmem", "repo": "lyr-ai/typedmem", "date": "2026-09-27"},
+  "audience": "Engineers whose agents keep facts that change: plans, addresses, preferences",
+  "other_audiences": [],
   "problem": {"text": "Facts an agent relies on change over time.", "evidence": [{"file": "README.md", "line": 5}]},
   "capabilities": [
     {"id": "state", "name": "set / get / history", "evidence": [{"file": "typedmem/agent.py", "line": 236}]}
@@ -83,10 +85,16 @@
      "why": "The agent doesn't act on stale state", "capabilities": ["state"], "level": "demonstrated",
      "proof": [{"level": "confirmed", "kind": "command", "claim": "LongMemEval KU history 0/11 → 11/11",
                 "command": "reliagent-bench@df0ebc6 external/run_longmemeval_ku.py", "exit_code": 0, "output": "v9_states 65/65"}],
-     "pains": ["P1"]}
+     "pains": ["P1"]},
+    {"id": "V8", "parent": "V1", "outcome": "Ask what a value was on any past date", "why": "...",
+     "capabilities": ["state"], "level": "supported",
+     "proof": [{"level": "observed", "kind": "test", "claim": "as_of returns the value valid then", "file": "tests/test_state.py", "line": 90}]}
   ],
   "first_screen": {
-    "lead": ["V1"], "support": ["V2"], "trust": ["V3"],
+    "lead": ["V1"], "support": ["V2", "V4"], "trust": ["V3"],
+    "lead_reason": {"relevance": "The audience's core pain: an old fact comes back as if current",
+                    "differentiation": {"alternative": "a vector memory that overwrites or appends",
+                                        "why": "Keeps both values and says which is current, by validity time"}},
     "advanced": [{"capability": "profiles", "reason": "Depth, but no observed pain"}],
     "stop_saying": [{"claim": "Contract-driven memory", "file": "README.md", "line": 105, "reason": "No value or pain supports leading with it"}]
   }
@@ -96,10 +104,12 @@
 ## Rules (checked by `validate.py --value`)
 
 - Every capability has an `id`, a `name`, and ≥1 locator (`file` + `line` that exist, or a `url`).
+- `audience` names one primary audience (not a generic group such as "developers").
 - Every value has an `outcome`, a `why`, a `level` ∈ `demonstrated | supported | hypothesis`, and `capabilities` that exist.
-  - `demonstrated`: ≥1 `proof` item with `level: confirmed` and a locator.
+  - `demonstrated`: ≥1 `proof` item with `level: confirmed`. A confirmed proof was **executed**: it has a `command` with `exit_code` 0 and its `output`, or a `ci_run` URL and the `commit` it ran at. A `file:line` alone (a test you read) is `observed`.
   - `supported`: every capability it relies on has a locator (already required), and no `confirmed` proof is claimed.
   - `hypothesis`: no proof required.
+- At most 7 top-level values (values without `parent`). A `parent` is a top-level value; children have no children, and aren't placed in `first_screen`.
 - `pains` must exist in `.beacon/launch.json`, when it is present.
-- `first_screen` references existing ids. `lead` has exactly one value, and it can't be a `hypothesis`. Every `stop_saying` item has a locator.
+- `first_screen` references existing ids. `lead` has exactly one value, and it can't be a `hypothesis`; `lead_reason` gives `relevance` and `differentiation` (`alternative` + `why`). `support` has 1–3 values (2–3 when the map has ≥4 top-level values), `trust` 1–2. A value has one role. Every `stop_saying` item has a locator.
 - No score-like keys.

@@ -161,15 +161,30 @@ def _val(v, vid):
 
 @pytest.mark.parametrize("mutate,needle", [
     (lambda v: _val(v, "V1").update(proof=[]), "demonstrated needs a confirmed proof"),
-    (lambda v: _val(v, "V4").update(proof=[{"level": "confirmed", "kind": "test", "claim": "x", "file": "README.md", "line": 1}]), "call it demonstrated"),
+    (lambda v: _val(v, "V5a").update(proof=[{"level": "confirmed", "kind": "command", "claim": "x", "command": "pytest", "exit_code": 0, "output": "1 passed"}]), "call it demonstrated"),
     (lambda v: _val(v, "V1").update(level="certain"), "level must be one of"),
     (lambda v: _val(v, "V1").update(capabilities=["nope"]), "unknown capability nope"),
     (lambda v: _val(v, "V1").update(pains=["P9"]), "unknown pain P9"),
-    (lambda v: v["first_screen"].update(lead=["V7"]), "is a hypothesis"),
+    (lambda v: _val(v, "V1").update(level="hypothesis", proof=[]), "is a hypothesis"),
     (lambda v: v["first_screen"].update(lead=["V1", "V2"]), "exactly one value"),
     (lambda v: v["first_screen"]["stop_saying"][0].pop("file"), "where the claim is made"),
     (lambda v: v["capabilities"][0].update(evidence=[]), "needs a code or doc locator"),
     (lambda v: v.update(value_score=9), "no scores"),
+    # v0.1 a: confirmed means executed
+    (lambda v: _val(v, "V1").update(proof=[{"level": "confirmed", "kind": "test", "claim": "x", "file": "README.md", "line": 1}]), "confirmed means executed"),
+    (lambda v: _val(v, "V1")["proof"][0].update(exit_code=1), "confirmed means executed"),
+    # v0.1 b: one audience, and a lead chosen for relevance and differentiation
+    (lambda v: v.update(audience="developers"), "one primary audience"),
+    (lambda v: v["first_screen"]["lead_reason"]["differentiation"].pop("alternative"), "obvious alternative"),
+    (lambda v: v["first_screen"].pop("lead_reason"), "relevance"),
+    # v0.1 c: at most 7 top-level values, one level of grouping, one role each
+    (lambda v: _val(v, "V1a").pop("parent"), "at most 7"),
+    (lambda v: _val(v, "V1b").update(parent="V1a"), "one level of grouping"),
+    (lambda v: _val(v, "V1a").update(parent="V99"), "unknown parent V99"),
+    (lambda v: v["first_screen"].update(support=["V1a", "V2"]), "place the parent"),
+    (lambda v: v["first_screen"].update(support=["V2"]), "support: 2–3"),
+    (lambda v: v["first_screen"].update(trust=["V4", "V5", "V6"]), "trust: 1–2"),
+    (lambda v: v["first_screen"].update(trust=["V2"]), "more than one role"),
 ])
 def test_value_rules_reject(repo, mutate, needle):
     v = value_fixture()
@@ -180,7 +195,7 @@ def test_value_rules_reject(repo, mutate, needle):
 
 def test_coverage_is_derived_and_finds_orphans():
     cov = validate.coverage(EXV)
-    assert cov["recall"] == [] and cov["http"] == [] and "V1" in cov["state"]
+    assert cov["evolvers"] == [] and cov["kernel"] == [] and "V1" in cov["state"]
 
 
 def test_render_value_map_bridge_and_first_screen():
@@ -230,7 +245,8 @@ def test_v2_encodes_conclusions_visually():
 def test_v2_every_value_and_pain_has_a_detail_panel():
     html = render.render(copy.deepcopy(EX), [], copy.deepcopy(EXV))
     for x in EXV["values"]:
-        assert f'<template id="d-{x["id"]}">' in html
+        if not x.get("parent"):
+            assert f'<template id="d-{x["id"]}">' in html
     for p in EX["pains"]:
         assert f'<template id="d-{p["id"]}">' in html
 
@@ -238,3 +254,16 @@ def test_v2_every_value_and_pain_has_a_detail_panel():
 def test_v2_without_market_evidence_says_so_in_one_line():
     view = _default_view(render.render(None, [], copy.deepcopy(EXV)))
     assert "No market evidence yet" in view and "No experiment yet" in view
+
+
+def test_v2_grouped_values_open_on_demand():
+    """Scenes show top-level values; children open in the parent's panel, and the lead says why."""
+    html = render.render(copy.deepcopy(EX), [], copy.deepcopy(EXV))
+    view = _default_view(html)
+    kids = [x for x in EXV["values"] if x.get("parent")]
+    assert kids and all(f'data-d="{x["id"]}"' not in view for x in kids)
+    assert ">+2</text>" in view                                   # V1 has two children
+    v1 = html[html.index('<template id="d-V1">'):]
+    v1 = v1[:v1.index("</template>")]
+    assert "Includes" in v1 and "Why it leads" in v1 and _val(EXV, "V1a")["outcome"][:30] in v1
+    assert "chosen over" in view

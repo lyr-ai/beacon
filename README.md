@@ -16,9 +16,16 @@ answers two questions, in order:
 A feature list is not value. Beacon traces each value as **problem →
 capability → user outcome → why it matters → proof**, and labels how
 strongly it can be claimed:
-- ● **demonstrated**: a test, benchmark or command output shows it;
-- ◐ **supported**: the code does it, with no outside measurement;
+- ● **demonstrated**: something was run and passed: a test, a benchmark or
+  a command with its output, or a CI run at a named commit. A test that
+  exists is not a test that passed;
+- ◐ **supported**: the code or a test does it, read but not run;
 - ○ **hypothesis**: a guess worth testing.
+
+The lead is chosen for **one named audience**, by what makes them choose
+this project over a named alternative. Proof decides how strongly to say
+it, not what to say first. At most seven values reach the map; related ones
+are grouped and open on click.
 
 Then it connects inside to outside:
 - which values answer pains people have actually posted;

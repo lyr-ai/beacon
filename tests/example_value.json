@@ -1,303 +1,585 @@
 {
- "version": 1,
- "product": {
-  "name": "typedmem",
-  "repo": "lyr-ai/typedmem",
-  "date": "2026-09-27"
- },
- "problem": {
-  "text": "Facts an agent relies on change over time, arrive late, and come from sources that disagree.",
-  "evidence": [
-   {
-    "file": "README.md",
-    "line": 5
-   }
-  ]
- },
- "capabilities": [
-  {
-   "id": "state",
-   "name": "Named states: set / get / history",
-   "evidence": [
-    {
-     "file": "typedmem/agent.py",
-     "line": 236
-    }
-   ]
+  "version": 1,
+  "product": {
+    "name": "typedmem",
+    "repo": "lyr-ai/typedmem",
+    "date": "2026-09-27"
   },
-  {
-   "id": "validity",
-   "name": "Validity-time ordering (valid_from, as_of)",
-   "evidence": [
-    {
-     "file": "typedmem/state.py",
-     "line": 169
-    }
-   ]
+  "audience": "Python developers building long-lived agents whose memory holds facts that change (plans, employers, addresses), and who are deciding right now how an update should supersede the old value",
+  "other_audiences": [
+    "mem0 users hitting conflicting memories after ADD-only extraction (launch.json A2)",
+    "Teams building domain apps (research, legal, engineering design) that want a typed schema and declared conflict rules for memory",
+    "Non-Python services that want typed memory over HTTP/TypeScript (states are not exposed there yet)"
+  ],
+  "problem": {
+    "text": "Facts an agent relies on change, arrive late, or come from sources that disagree; a memory that overwrites or appends can't say which value is current.",
+    "evidence": [
+      {
+        "file": "README.md",
+        "line": 5
+      },
+      {
+        "file": "README.md",
+        "line": 8
+      },
+      {
+        "file": ".heed/project.json",
+        "line": 10
+      }
+    ]
   },
-  {
-   "id": "conflict",
-   "name": "StateConflict: get refuses to pick",
-   "evidence": [
+  "capabilities": [
     {
-     "file": "typedmem/state.py",
-     "line": 102
-    }
-   ]
-  },
-  {
-   "id": "provenance",
-   "name": "Sources and authority on every value",
-   "evidence": [
+      "id": "state",
+      "name": "set / get / history: one current value per named state, earlier values kept",
+      "evidence": [
+        {
+          "file": "typedmem/agent.py",
+          "line": 236
+        },
+        {
+          "file": "typedmem/state.py",
+          "line": 169
+        }
+      ]
+    },
     {
-     "file": "typedmem/state.py",
-     "line": 52
-    }
-   ]
-  },
-  {
-   "id": "audit",
-   "name": "Replayable event log",
-   "evidence": [
+      "id": "late",
+      "name": "Order values by validity time (valid_from/valid_to), not arrival order",
+      "evidence": [
+        {
+          "file": "typedmem/state.py",
+          "line": 169
+        },
+        {
+          "file": "tests/test_state.py",
+          "line": 70
+        }
+      ]
+    },
     {
-     "file": "typedmem/replay.py",
-     "line": 31
-    }
-   ]
-  },
-  {
-   "id": "typed",
-   "name": "Typed profiles and per-type conflict policies",
-   "evidence": [
+      "id": "asof",
+      "name": "Point-in-time reads: get/history as_of a date; scheduled values",
+      "evidence": [
+        {
+          "file": "typedmem/agent.py",
+          "line": 255
+        },
+        {
+          "file": "tests/test_state.py",
+          "line": 195
+        }
+      ]
+    },
     {
-     "file": "typedmem/policy.py",
-     "line": 24
-    }
-   ]
-  },
-  {
-   "id": "recall",
-   "name": "Semantic recall",
-   "evidence": [
+      "id": "conflict",
+      "name": "StateConflict: same-moment or weaker-later disagreement has no current value",
+      "evidence": [
+        {
+          "file": "typedmem/state.py",
+          "line": 102
+        },
+        {
+          "file": "tests/test_state.py",
+          "line": 87
+        }
+      ]
+    },
     {
-     "file": "typedmem/agent.py",
-     "line": 160
-    }
-   ]
-  },
-  {
-   "id": "http",
-   "name": "HTTP server and TypeScript client",
-   "evidence": [
+      "id": "provenance",
+      "name": "Sources with authority on every value; repeats add a source",
+      "evidence": [
+        {
+          "file": "typedmem/source.py",
+          "line": 21
+        },
+        {
+          "file": "tests/test_state.py",
+          "line": 59
+        }
+      ]
+    },
     {
-     "file": "typedmem/server/app.py",
-     "line": 127
+      "id": "cli",
+      "name": "typedmem set / get / history CLI (get exits 3 on conflict)",
+      "evidence": [
+        {
+          "file": "typedmem/cli.py",
+          "line": 536
+        },
+        {
+          "file": "typedmem/cli.py",
+          "line": 299
+        }
+      ]
+    },
+    {
+      "id": "persist",
+      "name": "Local SQLite / JSONL stores that persist states and their history",
+      "evidence": [
+        {
+          "file": "typedmem/stores/sqlite.py",
+          "line": 192
+        },
+        {
+          "file": "typedmem/stores/jsonl.py",
+          "line": 30
+        }
+      ]
+    },
+    {
+      "id": "zerodeps",
+      "name": "Zero runtime dependencies (stdlib only; extras opt-in)",
+      "evidence": [
+        {
+          "file": "pyproject.toml",
+          "line": 26
+        }
+      ]
+    },
+    {
+      "id": "audit",
+      "name": "Replayable event log with before/after snapshots",
+      "evidence": [
+        {
+          "file": "typedmem/replay.py",
+          "line": 31
+        },
+        {
+          "file": "typedmem/stores/base.py",
+          "line": 309
+        }
+      ]
+    },
+    {
+      "id": "typed",
+      "name": "Typed memory: DomainProfile schemas and per-type ConflictPolicy",
+      "evidence": [
+        {
+          "file": "typedmem/policy.py",
+          "line": 24
+        },
+        {
+          "file": "typedmem/profiles/base.py",
+          "line": 89
+        }
+      ]
+    },
+    {
+      "id": "evolvers",
+      "name": "Evolvers: preference drift, goal resolution, non-destructive summaries",
+      "evidence": [
+        {
+          "file": "typedmem/evolvers/drift.py",
+          "line": 23
+        },
+        {
+          "file": "typedmem/evolvers/goals.py",
+          "line": 27
+        }
+      ]
+    },
+    {
+      "id": "kernel",
+      "name": "Transition kernel: one write funnel with optimistic concurrency (provisional API)",
+      "evidence": [
+        {
+          "file": "typedmem/kernel.py",
+          "line": 212
+        },
+        {
+          "file": "README.md",
+          "line": 485
+        }
+      ]
+    },
+    {
+      "id": "recall",
+      "name": "Semantic recall over stored memories (hashing embedder default)",
+      "evidence": [
+        {
+          "file": "typedmem/agent.py",
+          "line": 160
+        },
+        {
+          "file": "typedmem/retriever.py",
+          "line": 94
+        }
+      ]
+    },
+    {
+      "id": "http",
+      "name": "HTTP server and TypeScript client for typed memory (not states)",
+      "evidence": [
+        {
+          "file": "typedmem/server/app.py",
+          "line": 127
+        },
+        {
+          "file": "docs/states.md",
+          "line": 131
+        }
+      ]
     }
-   ]
+  ],
+  "values": [
+    {
+      "id": "V1",
+      "outcome": "Know which value is current when a fact changes, without losing the values it had before",
+      "why": "The agent doesn't act on a stale value, and can still answer questions about what used to be true",
+      "capabilities": [
+        "state",
+        "late",
+        "cli"
+      ],
+      "level": "demonstrated",
+      "proof": [
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "All 53 state acceptance tests pass across in-memory, JSONL and SQLite stores",
+          "command": ".venv/bin/python -m pytest tests/test_state.py -q",
+          "exit_code": 0,
+          "output": "53 passed in 0.45s"
+        },
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "The README's set/get/history transcript runs and its output matches the README exactly",
+          "command": ".venv/bin/python -m pytest tests/test_readme_contract.py -q",
+          "exit_code": 0,
+          "output": "9 passed in 0.12s"
+        },
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "Recorded external run at reliagent-bench@df0ebc6 (read from its committed result file, not re-executed): LongMemEval knowledge-update, states 65/65 vs typed REPLACE 54/65; history questions 11/11 vs 0/11",
+          "command": "git -C reliagent-bench show df0ebc6:external/results/longmemeval-ku.txt",
+          "exit_code": 0,
+          "output": "v4_replace 53/53 0/6 0/2 0/3 1/1 6/6 54/65 | v9_states 53/53 6/6 2/2 3/3 1/1 6/6 65/65"
+        }
+      ],
+      "pains": [
+        "P1",
+        "P2"
+      ]
+    },
+    {
+      "id": "V1a",
+      "parent": "V1",
+      "outcome": "A late record about the past goes into history instead of overwriting the present",
+      "why": "An old support ticket or re-ingested document can't silently roll the agent back",
+      "capabilities": [
+        "late"
+      ],
+      "level": "demonstrated",
+      "proof": [
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "OpenAI → Anthropic, then a late Google (2022) lands in history; get stays Anthropic",
+          "command": ".venv/bin/python -m pytest tests/test_state.py::test_late_arriving_past_value_lands_in_history tests/test_state.py::test_unset_expired_and_scheduled -q",
+          "exit_code": 0,
+          "output": "6 passed in 0.04s"
+        }
+      ],
+      "pains": [
+        "P1",
+        "P2"
+      ]
+    },
+    {
+      "id": "V1b",
+      "parent": "V1",
+      "outcome": "Ask what a value was on any past date, or schedule one for the future",
+      "why": "Questions like 'what plan were they on in April?' get the value valid then, not the latest",
+      "capabilities": [
+        "asof",
+        "late"
+      ],
+      "level": "demonstrated",
+      "proof": [
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "as_of returns the value valid at that date; ended and scheduled values handled",
+          "command": ".venv/bin/python -m pytest tests/test_state.py::test_late_arriving_past_value_lands_in_history tests/test_state.py::test_unset_expired_and_scheduled -q",
+          "exit_code": 0,
+          "output": "6 passed in 0.04s"
+        }
+      ],
+      "pains": [
+        "P2"
+      ]
+    },
+    {
+      "id": "V2",
+      "outcome": "When sources genuinely disagree, get an explicit conflict instead of a guessed current value",
+      "why": "The agent doesn't confidently act on one side of an unresolved disagreement; you see both values and their sources",
+      "capabilities": [
+        "conflict",
+        "provenance",
+        "cli"
+      ],
+      "level": "demonstrated",
+      "proof": [
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "Simultaneous and weaker-later disagreements raise StateConflict; a stronger later value resolves it",
+          "command": ".venv/bin/python -m pytest tests/test_state.py::test_simultaneous_disagreement_is_a_conflict tests/test_state.py::test_later_weaker_value_is_a_conflict tests/test_state.py::test_stronger_later_value_resolves_conflict -q",
+          "exit_code": 0,
+          "output": "9 passed in 0.05s"
+        },
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "The README conflict transcript (get exits 3, both values shown with sources) runs and matches",
+          "command": ".venv/bin/python -m pytest tests/test_readme_contract.py -q",
+          "exit_code": 0,
+          "output": "9 passed in 0.12s"
+        }
+      ],
+      "pains": [
+        "P1",
+        "P4"
+      ],
+      "caveat": "Measured cost (reliagent-bench df0ebc6, external/results/states-0.9.3.md): against a Mode A gold that expects silent authority vetoes, states score authority 0.50 vs typed-memory 1.00, because they report a conflict instead"
+    },
+    {
+      "id": "V3",
+      "outcome": "See where every value came from, and let a trusted source outrank an agent's own guess",
+      "why": "You can debug why the agent believes something, and a low-authority inference can't silently override what the user said",
+      "capabilities": [
+        "provenance"
+      ],
+      "level": "demonstrated",
+      "proof": [
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "Repeating a value adds its source without a new history entry",
+          "command": ".venv/bin/python -m pytest tests/test_state.py::test_same_value_adds_source_without_new_history tests/test_state.py::test_set_result_says_whether_a_source_was_added -q",
+          "exit_code": 0,
+          "output": "4 passed in 0.03s"
+        },
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "A later but weaker value opens a conflict; a later stronger one supersedes",
+          "command": ".venv/bin/python -m pytest tests/test_state.py::test_simultaneous_disagreement_is_a_conflict tests/test_state.py::test_later_weaker_value_is_a_conflict tests/test_state.py::test_stronger_later_value_resolves_conflict -q",
+          "exit_code": 0,
+          "output": "9 passed in 0.05s"
+        }
+      ],
+      "pains": [
+        "P2",
+        "P4"
+      ]
+    },
+    {
+      "id": "V4",
+      "outcome": "Rebuild and audit exactly how the agent's memory reached its current state",
+      "why": "When memory is wrong you can prove what changed, when and from which source, and replay it",
+      "capabilities": [
+        "audit"
+      ],
+      "level": "demonstrated",
+      "proof": [
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "The event log replays to exactly the stored state, including state changes",
+          "command": ".venv/bin/python -m pytest tests/test_replay.py tests/test_state.py::test_state_changes_replay_exactly -q",
+          "exit_code": 0,
+          "output": "15 passed in 0.05s"
+        }
+      ],
+      "pains": []
+    },
+    {
+      "id": "V5",
+      "outcome": "Keep the agent's state in a local file you own; it survives restarts with its history and conflicts intact",
+      "why": "Safe to adopt: no service to run, no hosted memory cloud",
+      "capabilities": [
+        "persist"
+      ],
+      "level": "demonstrated",
+      "proof": [
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "History, conflicts and replay survive close/reopen for JSONL and SQLite",
+          "command": ".venv/bin/python -m pytest tests/test_state.py::test_state_survives_reopen -q",
+          "exit_code": 0,
+          "output": "2 passed in 0.03s"
+        }
+      ],
+      "pains": []
+    },
+    {
+      "id": "V5a",
+      "parent": "V5",
+      "outcome": "Install it without pulling in any other package",
+      "why": "Nothing to vet or conflict with in an existing agent stack",
+      "capabilities": [
+        "zerodeps"
+      ],
+      "level": "supported",
+      "proof": [
+        {
+          "level": "observed",
+          "kind": "code",
+          "claim": "dependencies = [] in pyproject (the local .venv metadata is a stale 0.9.1 install, so it was not used as proof)",
+          "file": "pyproject.toml",
+          "line": 26
+        }
+      ],
+      "pains": []
+    },
+    {
+      "id": "V6",
+      "outcome": "Declare per-type rules for domain memory: reject invalid writes, supersede decisions, merge corroborating sources, flag contradictions",
+      "why": "For domain apps where 'the memory accepted nonsense' is a correctness bug, and where a policy should pick a winner",
+      "capabilities": [
+        "typed"
+      ],
+      "level": "demonstrated",
+      "proof": [
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "Policy, profile and schema tests pass",
+          "command": ".venv/bin/python -m pytest tests/test_policy.py tests/test_profiles.py tests/test_schema.py -q",
+          "exit_code": 0,
+          "output": "29 passed in 0.03s"
+        },
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "Contradiction surfacing and authority guard tests pass",
+          "command": ".venv/bin/python -m pytest tests/test_evolvers_contradictions.py tests/test_conflicts_authority.py -q",
+          "exit_code": 0,
+          "output": "15 passed in 0.02s"
+        }
+      ],
+      "pains": [
+        "P4"
+      ]
+    },
+    {
+      "id": "V6a",
+      "parent": "V6",
+      "outcome": "Use typed memory from non-Python services over HTTP",
+      "why": "A TypeScript or other service can share the same memory store",
+      "capabilities": [
+        "http",
+        "typed"
+      ],
+      "level": "demonstrated",
+      "proof": [
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "Server endpoints (add/get/list/recall/history/timeline/contradictions, 422 on profile rejection) pass",
+          "command": ".venv/bin/python -m pytest tests/test_server.py -q",
+          "exit_code": 0,
+          "output": "19 passed, 1 warning in 0.31s"
+        }
+      ],
+      "pains": []
+    },
+    {
+      "id": "V7",
+      "outcome": "Find relevant stored memories by meaning, weighted by recency and confidence",
+      "why": "The agent can pull the memories that matter for a question without an external vector DB",
+      "capabilities": [
+        "recall"
+      ],
+      "level": "demonstrated",
+      "proof": [
+        {
+          "level": "confirmed",
+          "kind": "command",
+          "claim": "Retriever tests pass",
+          "command": ".venv/bin/python -m pytest tests/test_retriever.py tests/test_retriever_semantic.py -q",
+          "exit_code": 0,
+          "output": "9 passed in 0.02s"
+        }
+      ],
+      "pains": []
+    }
+  ],
+  "first_screen": {
+    "lead": [
+      "V1"
+    ],
+    "support": [
+      "V2",
+      "V3"
+    ],
+    "trust": [
+      "V5",
+      "V4"
+    ],
+    "lead_reason": {
+      "relevance": "Answers P1, the strongest observed pain (the old fact and its replacement both come back and the agent has to guess), and P2 (people want a validity window and history, not an overwrite)",
+      "differentiation": {
+        "alternative": "a memory layer that overwrites on update (REPLACE / UPDATE) or appends every version and leaves the agent to pick",
+        "why": "Keeps every value and says which one is current by validity time, so a late old record can't overwrite the present; measured 11/11 vs 0/11 history questions against REPLACE. Honest limit: it only ties keep-both and bitemporal baselines on those runs, and the launch evidence shows several Show HN projects already offer bi-temporal/supersede memory, so the edge is the small set/get/history contract plus refusing to guess (V2), not validity time alone"
+      }
+    },
+    "advanced": [
+      {
+        "capability": "typed",
+        "reason": "Real and tested (V6), answers P4 partially, but the owner chose state-first; keep under Advanced"
+      },
+      {
+        "capability": "audit",
+        "reason": "Trust value (V4) with no observed pain; say it, don't lead with it"
+      },
+      {
+        "capability": "http",
+        "reason": "Serves typed memory only; states are Python/CLI, so leading with it would mislead the audience"
+      },
+      {
+        "capability": "recall",
+        "reason": "Commodity every alternative offers; README itself says TypedMem does not compete on retrieval"
+      },
+      {
+        "capability": "evolvers",
+        "reason": "Drift, goal resolution and summaries: no mapped value in this map and no observed pain"
+      },
+      {
+        "capability": "kernel",
+        "reason": "Internal write funnel; the API is provisional until v1.0"
+      }
+    ],
+    "stop_saying": [
+      {
+        "claim": "AI agents start believing their own hallucinations",
+        "file": "README.md",
+        "line": 127,
+        "reason": "No value or proof shows TypedMem detects or reduces hallucination; it records what it is told"
+      },
+      {
+        "claim": "Primary use case: Debugging hallucinating agents (remember / recall / reflect)",
+        "file": "README.md",
+        "line": 215,
+        "reason": "Contradicts the state-first first screen; no value or pain supports hallucination debugging as the primary use"
+      },
+      {
+        "claim": "Every state change goes through a ConflictPolicy you declared",
+        "file": "README.md",
+        "line": 207,
+        "reason": "States use fixed rules (validity time and authority only), not a declared ConflictPolicy (docs/states.md:128)"
+      },
+      {
+        "claim": "REST API ... Same surface as the Python library",
+        "file": "README.md",
+        "line": 281,
+        "reason": "States (set/get/history), the lead value, are not exposed over HTTP or TypeScript (docs/states.md:131)"
+      }
+    ]
   }
- ],
- "values": [
-  {
-   "id": "V1",
-   "outcome": "Know which value is current, without deleting the old one",
-   "why": "The agent doesn't act on stale state, and can still answer 'what was it before?'",
-   "capabilities": [
-    "state",
-    "validity"
-   ],
-   "level": "demonstrated",
-   "proof": [
-    {
-     "level": "confirmed",
-     "kind": "command",
-     "claim": "LongMemEval knowledge-update: 65/65, history questions 0/11 → 11/11 vs REPLACE",
-     "command": "reliagent-bench@df0ebc6 (branch measure/states-0.9.3) external/run_longmemeval_ku.py",
-     "exit_code": 0,
-     "output": "v9_states 65/65; v4_replace 54/65"
-    },
-    {
-     "level": "confirmed",
-     "kind": "test",
-     "claim": "Later value supersedes and keeps history (3 backends)",
-     "file": "tests/test_state.py",
-     "line": 44
-    }
-   ],
-   "pains": [
-    "P1",
-    "P2"
-   ]
-  },
-  {
-   "id": "V2",
-   "outcome": "A late record goes where it belonged instead of overwriting the present",
-   "why": "An old ticket, a backfill or a delayed sync can't corrupt the current state",
-   "capabilities": [
-    "validity",
-    "state"
-   ],
-   "level": "demonstrated",
-   "proof": [
-    {
-     "level": "confirmed",
-     "kind": "test",
-     "claim": "OpenAI → Google → Anthropic: late value lands in history",
-     "file": "tests/test_state.py",
-     "line": 70
-    },
-    {
-     "level": "confirmed",
-     "kind": "command",
-     "claim": "Mode A temporal category 1.00 (typed memory 0.84)",
-     "command": "reliagent-bench@df0ebc6 (branch measure/states-0.9.3) external/run_mode_a_states.py",
-     "exit_code": 0,
-     "output": "v9_states temporal 1.00"
-    }
-   ],
-   "pains": [
-    "P1"
-   ]
-  },
-  {
-   "id": "V3",
-   "outcome": "Genuine disagreement is exposed, not silently resolved",
-   "why": "The agent doesn't invent a truth when sources conflict, or let a weaker source quietly overwrite a stronger one",
-   "capabilities": [
-    "conflict",
-    "provenance"
-   ],
-   "level": "demonstrated",
-   "proof": [
-    {
-     "level": "confirmed",
-     "kind": "test",
-     "claim": "Same-moment disagreement raises StateConflict",
-     "file": "tests/test_state.py",
-     "line": 87
-    },
-    {
-     "level": "confirmed",
-     "kind": "command",
-     "claim": "Mode A A-02: open-ended stronger claim vs weaker later claim → conflict (kept as a deliberate disagreement)",
-     "command": "reliagent-bench@df0ebc6 (branch measure/states-0.9.3) external/run_mode_a_states.py",
-     "exit_code": 0,
-     "output": "A-02 actual=None"
-    }
-   ],
-   "pains": [
-    "P4"
-   ]
-  },
-  {
-   "id": "V4",
-   "outcome": "Know where every value came from, and how much to trust it",
-   "why": "You can explain, or challenge, why the agent believes something",
-   "capabilities": [
-    "provenance",
-    "state"
-   ],
-   "level": "supported",
-   "proof": [],
-   "pains": [
-    "P2"
-   ]
-  },
-  {
-   "id": "V5",
-   "outcome": "Rebuild any past memory state from the event log",
-   "why": "Debug how the agent's memory got into its current state",
-   "capabilities": [
-    "audit"
-   ],
-   "level": "demonstrated",
-   "proof": [
-    {
-     "level": "confirmed",
-     "kind": "test",
-     "claim": "Replay reproduces live state across policies",
-     "file": "tests/test_replay.py",
-     "line": 82
-    }
-   ],
-   "pains": []
-  },
-  {
-   "id": "V6",
-   "outcome": "Different kinds of memory resolve by their own rules (confidence guards, always-replace types)",
-   "why": "A deadline and a birthplace shouldn't update the same way",
-   "capabilities": [
-    "typed"
-   ],
-   "level": "demonstrated",
-   "proof": [
-    {
-     "level": "confirmed",
-     "kind": "command",
-     "claim": "Mode A typed category: typed core 1.00 (states 0.67)",
-     "command": "reliagent-bench@df0ebc6 (branch measure/states-0.9.3) external/run_mode_a_states.py",
-     "exit_code": 0,
-     "output": "v4_typedmem typed 1.00"
-    }
-   ],
-   "pains": []
-  },
-  {
-   "id": "V7",
-   "outcome": "Fewer production mistakes caused by stale facts",
-   "why": "If stale facts drive wrong actions, V1–V3 should reduce them",
-   "capabilities": [
-    "state",
-    "validity",
-    "conflict"
-   ],
-   "level": "hypothesis",
-   "proof": [],
-   "pains": [
-    "P1"
-   ]
-  }
- ],
- "first_screen": {
-  "lead": [
-   "V1"
-  ],
-  "support": [
-   "V2"
-  ],
-  "trust": [
-   "V3"
-  ],
-  "advanced": [
-   {
-    "capability": "typed",
-    "reason": "Demonstrated (Mode A typed 1.00), but no observed outside pain; it's depth, not the reason to care"
-   },
-   {
-    "capability": "audit",
-    "reason": "Demonstrated by tests; no observed pain asks for replay"
-   },
-   {
-    "capability": "recall",
-    "reason": "Supports no value in this map; recall is a crowded space and not TypedMem's difference"
-   },
-   {
-    "capability": "http",
-    "reason": "Supports no value for states (states are Python/CLI only)"
-   }
-  ],
-  "stop_saying": [
-   {
-    "claim": "AI agents start believing their own hallucinations",
-    "file": "README.md",
-    "line": 127,
-    "reason": "No value or proof in this map is about hallucination; TypedMem's demonstrated value is about changing facts, not model hallucination"
-   },
-   {
-    "claim": "Debugging hallucinating agents (primary use case)",
-    "file": "README.md",
-    "line": 215,
-    "reason": "Frames audit/replay (V5) as a hallucination fix; the value is 'see how memory got here', which is narrower and true"
-   }
-  ]
- }
 }
