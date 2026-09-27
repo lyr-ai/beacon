@@ -1,0 +1,653 @@
+{
+ "version": 1,
+ "product": {
+  "name": "typedmem",
+  "repo": "lyr-ai/typedmem",
+  "date": "2026-09-27"
+ },
+ "gate": "pass",
+ "gate_missing": [],
+ "positioning": {
+  "problem": {
+   "text": "Agent memory keeps facts that later change; old and new versions both stay retrievable.",
+   "evidence": [
+    {
+     "file": "README.md",
+     "line": 5
+    }
+   ]
+  },
+  "failure": {
+   "text": "The agent can't tell which value is current, and a late-arriving old record can look like the newest truth.",
+   "evidence": [
+    {
+     "file": "README.md",
+     "line": 8
+    }
+   ]
+  },
+  "product": {
+   "text": "Named states with one current value, full history and sources; late records go into history; genuine disagreement is exposed, not guessed.",
+   "evidence": [
+    {
+     "file": "README.md",
+     "line": 16
+    }
+   ]
+  },
+  "proof": {
+   "text": "0.9.1 on PyPI; acceptance tests on three backends; a live explorer drawn from the product's own answers.",
+   "evidence": [
+    {
+     "url": "https://pypi.org/project/typedmem/0.9.1/"
+    },
+    {
+     "file": "tests/test_state.py",
+     "line": 70
+    },
+    {
+     "url": "https://lyr-ai.github.io/typedmem/explorer/"
+    }
+   ]
+  },
+  "boundary": {
+   "text": "You name the key; no extraction from free text; one value per key; Python and CLI only for states.",
+   "evidence": [
+    {
+     "file": "README.md",
+     "line": 94
+    },
+    {
+     "file": "design/0002-changing-facts.md",
+     "line": 211
+    }
+   ]
+  }
+ },
+ "queries": [
+  {
+   "query": "agent memory outdated facts",
+   "platforms": [
+    "hn",
+    "github"
+   ]
+  },
+  {
+   "query": "agent remembers old information",
+   "platforms": [
+    "hn",
+    "github"
+   ]
+  },
+  {
+   "query": "memory conflicting facts llm",
+   "platforms": [
+    "hn",
+    "github"
+   ]
+  },
+  {
+   "query": "llm memory update overwrite old fact",
+   "platforms": [
+    "hn",
+    "github"
+   ]
+  },
+  {
+   "query": "agent memory stale",
+   "platforms": [
+    "hn",
+    "github"
+   ]
+  },
+  {
+   "query": "delete old memories agent",
+   "platforms": [
+    "hn",
+    "github"
+   ]
+  },
+  {
+   "query": "mem0 update memory wrong",
+   "platforms": [
+    "hn",
+    "github"
+   ]
+  },
+  {
+   "query": "temporal memory agent",
+   "platforms": [
+    "hn",
+    "github"
+   ]
+  },
+  {
+   "query": "site:reddit.com agent memory outdated facts current value conflicting memories",
+   "platforms": [
+    "reddit"
+   ]
+  },
+  {
+   "query": "site:reddit.com mem0 stores both old and new fact update memory stale",
+   "platforms": [
+    "reddit"
+   ]
+  }
+ ],
+ "coverage_notes": "Reddit could not be read from this environment (403 on its API and HTML; web search returned no reddit.com results), so no Reddit evidence is included. 144 raw sources read; 22 kept. One bot-generated 'market research' issue claiming Reddit counts was excluded (not a person).",
+ "sources": [
+  {
+   "id": "gh-85a468336d",
+   "platform": "github",
+   "url": "https://github.com/FraiseHQ/fraise/issues/390",
+   "author": "RonsenbergVI",
+   "date": "2026-09-25",
+   "quote": "Both stay in memory, both can come back from the same recall, and the agent is left to guess which one is current.",
+   "verbatim": true,
+   "repo": "FraiseHQ/fraise"
+  },
+  {
+   "id": "gh-a2ee5c509d",
+   "platform": "github",
+   "url": "https://github.com/mem0ai/mem0/issues/5867",
+   "author": "utkucanaytac",
+   "date": "2026-06-25",
+   "quote": "ADD-only memory extraction can create conflicting memories when a user updates or replaces a previously stored preference or fact.",
+   "verbatim": true,
+   "repo": "mem0ai/mem0"
+  },
+  {
+   "id": "gh-3a2cb62657",
+   "platform": "github",
+   "url": "https://github.com/mem0ai/mem0/issues/4956",
+   "author": "NDNM1408",
+   "date": "2026-04-24",
+   "quote": "contradictory memories accumulate over time instead of the newer fact superseding the older one.",
+   "verbatim": true,
+   "repo": "mem0ai/mem0"
+  },
+  {
+   "id": "gh-9397b1d36e",
+   "platform": "github",
+   "url": "https://github.com/1jehuang/jcode/issues/1106",
+   "author": "erelst",
+   "date": "2026-08-30",
+   "quote": "But state memories like \"use Jina for web search\" → later \"use Exa\" surface side by side and conflict, because neither has a validity window.",
+   "verbatim": true,
+   "repo": "1jehuang/jcode"
+  },
+  {
+   "id": "gh-fc00f2c854",
+   "platform": "github",
+   "url": "https://github.com/volcengine/OpenViking/issues/5267",
+   "author": "xsbl233",
+   "date": "2026-09-21",
+   "quote": "Similarity score alone does not tell the caller which fact is currently valid.",
+   "verbatim": true,
+   "repo": "volcengine/OpenViking"
+  },
+  {
+   "id": "gh-35a20dafb4",
+   "platform": "github",
+   "url": "https://github.com/mnemosyne-oss/mnemosyne/issues/712",
+   "author": "sich97",
+   "date": "2026-08-12",
+   "quote": "the outdated and current versions surface together.",
+   "verbatim": true,
+   "repo": "mnemosyne-oss/mnemosyne"
+  },
+  {
+   "id": "hn-47374335",
+   "platform": "hn",
+   "url": "https://news.ycombinator.com/item?id=47374335",
+   "author": "mohitbadi",
+   "date": "2026-03-14",
+   "quote": "Vector search is great at similarity, but terrible at current truth.",
+   "verbatim": true
+  },
+  {
+   "id": "hn-47767126",
+   "platform": "hn",
+   "url": "https://news.ycombinator.com/item?id=47767126",
+   "author": "pranabsarkar",
+   "date": "2026-04-14",
+   "quote": "The agent kept recalling outdated facts, contradicting itself across sessions",
+   "verbatim": true
+  },
+  {
+   "id": "hn-47093272",
+   "platform": "hn",
+   "url": "https://news.ycombinator.com/item?id=47093272",
+   "author": "TimoLabs",
+   "date": "2026-02-20",
+   "quote": "you tell your AI you changed jobs, and three weeks later it still references the old one.",
+   "verbatim": true
+  },
+  {
+   "id": "gh-3b82e4c0c3",
+   "platform": "github",
+   "url": "https://github.com/dcellison/kai/issues/1702",
+   "author": "dcellison",
+   "date": "2026-09-20",
+   "quote": "Episodes should remain accurate historical records while later evidence can revise their conclusions without rewriting history.",
+   "verbatim": true,
+   "repo": "dcellison/kai"
+  },
+  {
+   "id": "gh-a96cbc0a8b",
+   "platform": "github",
+   "url": "https://github.com/kaustav1996/reflex/issues/46",
+   "author": "kaustav1996",
+   "date": "2026-09-21",
+   "quote": "replaces outdated facts with **dated corrections** instead of silently deleting them",
+   "verbatim": true,
+   "repo": "kaustav1996/reflex"
+  },
+  {
+   "id": "gh-0bdbbec726",
+   "platform": "github",
+   "url": "https://github.com/wcatz/ghost/issues/578",
+   "author": "wcatz",
+   "date": "2026-09-25",
+   "quote": "Every write path overwrites them in place, so a row has no history",
+   "verbatim": true,
+   "repo": "wcatz/ghost"
+  },
+  {
+   "id": "gh-3044a20185",
+   "platform": "github",
+   "url": "https://github.com/nextain/naia-memory/issues/39",
+   "author": "luke-n-alpha",
+   "date": "2026-08-13",
+   "quote": "retain original memories, derive optional structured fact candidates, connect conflicts/supersessions",
+   "verbatim": true,
+   "repo": "nextain/naia-memory"
+  },
+  {
+   "id": "gh-e26efce465",
+   "platform": "github",
+   "url": "https://github.com/1jehuang/jcode/issues/1229",
+   "author": "SK-DEV-AI",
+   "date": "2026-09-11",
+   "quote": "Recalled memories go stale silently.",
+   "verbatim": true,
+   "repo": "1jehuang/jcode"
+  },
+  {
+   "id": "gh-697a858889",
+   "platform": "github",
+   "url": "https://github.com/TencentCloud/TencentDB-Agent-Memory/issues/1025",
+   "author": "Vocllum",
+   "date": "2026-08-16",
+   "quote": "As a result, **stale memories are never revisited**.",
+   "verbatim": true,
+   "repo": "TencentCloud/TencentDB-Agent-Memory"
+  },
+  {
+   "id": "gh-44d3b1c870",
+   "platform": "github",
+   "url": "https://github.com/langchain-ai/deepagents/issues/6122",
+   "author": "1fanwang",
+   "date": "2026-09-06",
+   "quote": "MemoryMiddleware keeps stale memory on checkpointed threads.",
+   "verbatim": true,
+   "repo": "langchain-ai/deepagents"
+  },
+  {
+   "id": "gh-1501a67cf5",
+   "platform": "github",
+   "url": "https://github.com/camorazrushimoe/federated-agent-memory/issues/2",
+   "author": "camorazrushimoe",
+   "date": "2026-08-19",
+   "quote": "A third agent then retrieves both and gets no resolution.",
+   "verbatim": true,
+   "repo": "camorazrushimoe/federated-agent-memory"
+  },
+  {
+   "id": "hn-48223037",
+   "platform": "hn",
+   "url": "https://news.ycombinator.com/item?id=48223037",
+   "author": "SwellJoe",
+   "date": "2026-05-21",
+   "quote": "I've turned off memory features in everything because of this kind of problem.",
+   "verbatim": true
+  },
+  {
+   "id": "hn-48008086",
+   "platform": "hn",
+   "url": "https://news.ycombinator.com/item?id=48008086",
+   "author": "akshayt2012",
+   "date": "2026-05-04",
+   "quote": "Show HN: Aurra – Bi-temporal memory for AI agents (with LLM auto-supersede)",
+   "verbatim": true
+  },
+  {
+   "id": "hn-48581267",
+   "platform": "hn",
+   "url": "https://news.ycombinator.com/item?id=48581267",
+   "author": "sakuraiben",
+   "date": "2026-06-18",
+   "quote": "Show HN: Memharness – Bi-temporal memory for AI agents, in one SQLite file",
+   "verbatim": true
+  },
+  {
+   "id": "hn-49122715",
+   "platform": "hn",
+   "url": "https://news.ycombinator.com/item?id=49122715",
+   "author": "souravroy78",
+   "date": "2026-07-31",
+   "quote": "Show HN: Provenance and decay for AI agent memory",
+   "verbatim": true
+  },
+  {
+   "id": "gh-7ccc40cb7b",
+   "platform": "github",
+   "url": "https://github.com/NVIDIA/garak/issues/2232",
+   "author": "samvallad33",
+   "date": "2026-09-24",
+   "quote": "agent memory outlives the session.",
+   "verbatim": true,
+   "repo": "NVIDIA/garak"
+  }
+ ],
+ "pains": [
+  {
+   "id": "P1",
+   "statement": "The old fact and its replacement both come back, and the agent has to guess which is current",
+   "source_ids": [
+    "gh-85a468336d",
+    "gh-a2ee5c509d",
+    "gh-3a2cb62657",
+    "gh-9397b1d36e",
+    "gh-fc00f2c854",
+    "gh-35a20dafb4",
+    "hn-47374335",
+    "hn-47767126",
+    "hn-47093272"
+   ],
+   "language": [
+    {
+     "text": "terrible at current truth",
+     "source_id": "hn-47374335"
+    },
+    {
+     "text": "the agent is left to guess which one is current",
+     "source_id": "gh-85a468336d"
+    },
+    {
+     "text": "instead of the newer fact superseding the older one",
+     "source_id": "gh-3a2cb62657"
+    },
+    {
+     "text": "which fact is currently valid",
+     "source_id": "gh-fc00f2c854"
+    }
+   ],
+   "workarounds": [
+    {
+     "text": "An LLM contradiction check at write time that marks old memories stale",
+     "source_ids": [
+      "hn-47093272"
+     ]
+    },
+    {
+     "text": "Truth-discovery inference over recall hits, weighted by recency",
+     "source_ids": [
+      "gh-85a468336d"
+     ]
+    },
+    {
+     "text": "Rebuilding memory as a database with its own conflict detection",
+     "source_ids": [
+      "hn-47767126"
+     ]
+    }
+   ],
+   "fit": "high",
+   "fit_reason": "Exactly TypedMem's case: one current value per state, the earlier one kept as history."
+  },
+  {
+   "id": "P2",
+   "statement": "When a fact changes, people want a validity window and history, not a silent overwrite or delete",
+   "source_ids": [
+    "gh-9397b1d36e",
+    "gh-3b82e4c0c3",
+    "gh-a96cbc0a8b",
+    "gh-0bdbbec726",
+    "gh-3044a20185"
+   ],
+   "language": [
+    {
+     "text": "neither has a validity window",
+     "source_id": "gh-9397b1d36e"
+    },
+    {
+     "text": "without rewriting history",
+     "source_id": "gh-3b82e4c0c3"
+    },
+    {
+     "text": "instead of silently deleting them",
+     "source_id": "gh-a96cbc0a8b"
+    },
+    {
+     "text": "so a row has no history",
+     "source_id": "gh-0bdbbec726"
+    }
+   ],
+   "workarounds": [
+    {
+     "text": "A nightly reconciliation agent that writes dated corrections",
+     "source_ids": [
+      "gh-a96cbc0a8b"
+     ]
+    },
+    {
+     "text": "An append-only provenance table bolted on beside the memory rows",
+     "source_ids": [
+      "gh-0bdbbec726"
+     ]
+    }
+   ],
+   "fit": "high",
+   "fit_reason": "valid_from / history / sources are TypedMem's core; these are people designing it from scratch in their own repos."
+  },
+  {
+   "id": "P3",
+   "statement": "Stale memories resurface silently; nothing checks whether they still hold",
+   "source_ids": [
+    "gh-e26efce465",
+    "gh-697a858889",
+    "gh-7ccc40cb7b",
+    "gh-44d3b1c870"
+   ],
+   "language": [
+    {
+     "text": "Recalled memories go stale silently",
+     "source_id": "gh-e26efce465"
+    },
+    {
+     "text": "stale memories are never revisited",
+     "source_id": "gh-697a858889"
+    }
+   ],
+   "workarounds": [
+    {
+     "text": "Citations on memories, re-read and verified at recall time",
+     "source_ids": [
+      "gh-e26efce465"
+     ]
+    },
+    {
+     "text": "LLM-driven maintenance passes that retire stale memories",
+     "source_ids": [
+      "gh-697a858889"
+     ]
+    }
+   ],
+   "fit": "partial",
+   "fit_reason": "TypedMem handles staleness when a newer value is set; it does not detect that an unset fact has gone stale."
+  },
+  {
+   "id": "P4",
+   "statement": "Different agents or sessions store contradictory facts and nothing decides between them",
+   "source_ids": [
+    "gh-1501a67cf5",
+    "gh-35a20dafb4"
+   ],
+   "language": [
+    {
+     "text": "gets no resolution",
+     "source_id": "gh-1501a67cf5"
+    }
+   ],
+   "workarounds": [
+    {
+     "text": "Per-session contradiction checks that never compare across threads",
+     "source_ids": [
+      "gh-35a20dafb4"
+     ]
+    }
+   ],
+   "fit": "partial",
+   "fit_reason": "TypedMem exposes the conflict with provenance; people here also want a policy that picks a winner, which TypedMem only does through later, stronger evidence."
+  }
+ ],
+ "counter_evidence": [
+  {
+   "claim": "The space is crowded with builders: several Show HN launches already offer bi-temporal / supersede / provenance memory",
+   "source_ids": [
+    "hn-48008086",
+    "hn-48581267",
+    "hn-49122715",
+    "hn-47093272"
+   ]
+  },
+  {
+   "claim": "Some users give up on memory entirely rather than fix it",
+   "source_ids": [
+    "hn-48223037"
+   ]
+  },
+  {
+   "claim": "Most voices are memory-system maintainers writing issues in their own repos: people with the pain who may build rather than adopt",
+   "source_ids": [
+    "gh-9397b1d36e",
+    "gh-3b82e4c0c3",
+    "gh-a96cbc0a8b"
+   ]
+  }
+ ],
+ "audiences": [
+  {
+   "id": "A1",
+   "who": "Maintainers of agent projects who are designing validity/supersession for their own memory layer right now",
+   "building": "Coding agents, personal agents and memory stores (jcode, kai, reflex, mnemosyne, naia-memory)",
+   "trigger": "They've just written an issue asking for valid_from, history or supersession",
+   "where": [
+    "GitHub issues in their own repos"
+   ],
+   "language": [
+    "validity window",
+    "without rewriting history",
+    "dated corrections"
+   ],
+   "fit": "strong",
+   "source_ids": [
+    "gh-9397b1d36e",
+    "gh-3b82e4c0c3",
+    "gh-a96cbc0a8b",
+    "gh-3044a20185",
+    "gh-35a20dafb4",
+    "gh-85a468336d"
+   ]
+  },
+  {
+   "id": "A2",
+   "who": "mem0 users hitting conflicting memories after v3's ADD-only extraction",
+   "building": "Chat and agent apps on mem0 with user preferences and profile facts",
+   "trigger": "A user changes a preference or employer and both memories come back",
+   "where": [
+    "mem0 GitHub issues"
+   ],
+   "language": [
+    "contradictory memories accumulate",
+    "ADD-only"
+   ],
+   "fit": "partial",
+   "source_ids": [
+    "gh-a2ee5c509d",
+    "gh-3a2cb62657"
+   ]
+  },
+  {
+   "id": "A3",
+   "who": "Solo builders of long-lived personal or coding assistants frustrated by memory",
+   "building": "Python sidekicks and MCP memory tools",
+   "trigger": "The agent confidently repeats an old fact",
+   "where": [
+    "Hacker News Show HN and comments"
+   ],
+   "language": [
+    "terrible at current truth",
+    "forgetful goldfish"
+   ],
+   "fit": "partial",
+   "source_ids": [
+    "hn-47374335",
+    "hn-47767126",
+    "hn-47093272",
+    "hn-48223037"
+   ]
+  }
+ ],
+ "experiment": {
+  "audience": "A1",
+  "hook": "The rules we ended up with for late-arriving and conflicting values",
+  "channel": "GitHub: three open issues that ask for exactly this (jcode #1106, fraise #390, kai #1702)",
+  "why_channel": [
+   {
+    "reason": "These maintainers wrote down this exact problem in the last six weeks, in their own repos",
+    "source_ids": [
+     "gh-9397b1d36e",
+     "gh-85a468336d",
+     "gh-3b82e4c0c3"
+    ]
+   },
+   {
+    "reason": "On HN the space is crowded with competing launches, so a Show HN would read as one more memory library",
+    "source_ids": [
+     "hn-48008086",
+     "hn-48581267"
+    ]
+   }
+  ],
+  "cta": "How are you planning to order a value that arrives late but describes the past?",
+  "hypothesis": "Maintainers designing validity/supersession right now will engage with concrete ordering rules (validity time vs arrival, weaker-later = conflict) more than with a library pitch; replies will show whether they'd adopt a state layer or only borrow the design.",
+  "message": "I maintain TypedMem, a small memory library, and hit exactly this. Sharing the rules we ended up with in case they're useful, whether or not you use the library:\n\n1. Order values by when they became true (valid_from), not when they arrived. A late record describing the past goes into history; it doesn't replace the current value.\n2. A later value from a weaker source doesn't silently win. It opens a conflict, and get() refuses to pick until stronger or later evidence settles it.\n3. Nothing is deleted: every value keeps its window and its source.\n\nDesign note with the edge cases: https://github.com/lyr-ai/typedmem/blob/main/design/0002-changing-facts.md\n\nOne question: how are you planning to handle a value that arrives late but describes the past?",
+  "success": {
+   "signal": "maintainer replies that engage with the ordering rules (not just thanks)",
+   "threshold": ">= 2 of 3 issues",
+   "window_hours": 168,
+   "failure": "0 substantive replies, or any reply treating it as spam"
+  },
+  "not_this_round": [
+   {
+    "item": "Show HN",
+    "reason": "Three bi-temporal/provenance memory launches in the last five months; TypedMem needs a sharper angle (the explorer) before HN"
+   },
+   {
+    "item": "Reddit",
+    "reason": "No readable evidence from this environment about where on Reddit this audience talks"
+   },
+   {
+    "item": "mem0 users (A2)",
+    "reason": "They rely on automatic extraction, which is out of TypedMem's scope; a pitch there would promise what the product doesn't do"
+   },
+   {
+    "item": "LinkedIn or a launch blog post",
+    "reason": "No evidence the audience is there; a post is archive value, not reach"
+   }
+  ],
+  "history_file": ".beacon/history/2026-09-27-github-issues.json"
+ }
+}

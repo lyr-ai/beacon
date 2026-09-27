@@ -1,0 +1,128 @@
+"""Beacon's scripts: verbatim collection, the validator's evidence rules, the renderer."""
+
+import copy
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "beacon" / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+import render  # noqa: E402
+import search  # noqa: E402
+import validate  # noqa: E402
+
+EX = json.loads((Path(__file__).parent / "example_launch.json").read_text())
+
+
+@pytest.fixture
+def repo(tmp_path):
+    (tmp_path / "README.md").write_text("line\n" * 300)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_state.py").write_text("x\n" * 300)
+    (tmp_path / "design").mkdir()
+    (tmp_path / "design" / "0002-changing-facts.md").write_text("x\n" * 300)
+    return tmp_path
+
+
+def raw_of(doc):
+    return {s["id"]: {"id": s["id"], "text": "prefix " + s["quote"] + " suffix"} for s in doc["sources"]}
+
+
+def errs(doc, repo, raw=None):
+    return validate.validate(doc, repo, raw_of(doc) if raw is None else raw)
+
+
+# ── search.py ───────────────────────────────────────────────────────────
+def test_clean_strips_html_and_entities():
+    assert search.clean("<p>I&#x27;ve  had\n to <i>disable</i> it</p>") == "I've had to disable it"
+
+
+def test_hn_parsing(monkeypatch):
+    class R:
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def read(self): return b""
+    payload = {"hits": [{"objectID": "1", "author": "a", "created_at": "2026-01-02T00:00:00Z",
+                         "comment_text": "Old facts keep &quot;coming back&quot;", "story_title": "Ask HN"},
+                        {"objectID": "2", "author": "b", "created_at": "2026-01-03T00:00:00Z"}]}
+    monkeypatch.setattr(search.urllib.request, "urlopen", lambda *a, **k: R())
+    monkeypatch.setattr(search.json, "load", lambda r: payload)
+    out = search.hn("q", None, 5)
+    assert [(s["id"], s["text"], s["verbatim"]) for s in out] == [("hn-1", 'Old facts keep "coming back"', True)]
+
+
+# ── validator ───────────────────────────────────────────────────────────
+def test_example_is_valid(repo):
+    assert errs(EX, repo) == []
+
+
+def test_verbatim_quote_must_be_in_raw_text(repo):
+    d = copy.deepcopy(EX)
+    d["sources"][0]["quote"] = "words nobody wrote"
+    raw = raw_of(EX)
+    assert any("isn't in the source's raw text" in e for e in errs(d, repo, raw))
+
+
+def test_paraphrase_is_allowed_when_labelled(repo):
+    d = copy.deepcopy(EX)
+    d["sources"][0]["quote"] = "a paraphrase"
+    d["sources"][0]["verbatim"] = False
+    d["pains"] = [dict(p, language=[l for l in p["language"] if l["source_id"] != d["sources"][0]["id"]]) for p in d["pains"]]
+    assert errs(d, repo, raw_of(EX)) == []
+
+
+def test_language_phrase_must_be_the_sources_words(repo):
+    d = copy.deepcopy(EX)
+    d["pains"][0]["language"][0]["text"] = "invented phrase"
+    assert any("is not in" in e for e in errs(d, repo))
+
+
+def test_independent_authors_are_counted_not_typed():
+    by_id = {s["id"]: s for s in EX["sources"]}
+    p = dict(EX["pains"][0], source_ids=[EX["sources"][0]["id"], EX["sources"][0]["id"]])
+    assert validate.independent_authors(p, by_id) == 1
+
+
+@pytest.mark.parametrize("mutate,needle", [
+    (lambda d: d["positioning"]["proof"].update(evidence=[]), "positioning.proof: needs evidence"),
+    (lambda d: d["positioning"]["problem"]["evidence"].__setitem__(0, {"file": "README.md", "line": 999}), "out of range"),
+    (lambda d: d["audiences"][0].update(who="AI developers"), "too generic"),
+    (lambda d: d["experiment"].update(channel=["HN", "Reddit"]), "one channel"),
+    (lambda d: d["experiment"].pop("not_this_round"), "not this round"),
+    (lambda d: d["experiment"]["success"].pop("failure"), "missing failure"),
+    (lambda d: d["pains"][0].update(fit="very high"), "fit must be"),
+    (lambda d: d.update(pmf_score=78), "no scores or percentages"),
+    (lambda d: d["pains"][0]["source_ids"].append("nope"), "unknown source nope"),
+])
+def test_rules_reject(repo, mutate, needle):
+    d = copy.deepcopy(EX)
+    mutate(d)
+    assert any(needle in e for e in errs(d, repo)), errs(d, repo)
+
+
+def test_gate_stop_forbids_an_experiment(repo):
+    d = copy.deepcopy(EX)
+    d["gate"], d["gate_missing"] = "stop", ["no proof"]
+    assert any("no experiment until" in e for e in errs(d, repo))
+    d.pop("experiment")
+    assert errs(d, repo) == []
+
+
+# ── renderer ────────────────────────────────────────────────────────────
+def test_render_marks_paraphrases_and_escapes():
+    d = copy.deepcopy(EX)
+    d["sources"][0]["verbatim"] = False
+    d["pains"][0]["statement"] = "<script>x</script>"
+    html = render.render(d, [])
+    assert "(paraphrase)" in html and "&lt;script&gt;" in html and "<script>" not in html
+    assert "Where is the pull for typedmem?" in html and "The one next experiment" in html
+
+
+def test_render_gate_stop():
+    d = copy.deepcopy(EX)
+    d["gate"], d["gate_missing"] = "stop", ["No proof yet"]
+    d.pop("experiment")
+    html = render.render(d, [])
+    assert "Not ready for go-to-market" in html and "No proof yet" in html
