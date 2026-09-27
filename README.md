@@ -2,9 +2,39 @@
 
 **Find the people who should see your project, and the one next move to reach them.**
 
-Beacon is a go-to-market skill for the coding agent you already use. Run
-`/beacon` in a project's repository and the agent investigates, rather than
-brainstorms:
+Beacon is a go-to-market skill for the coding agent you already use. It
+answers two questions, in order:
+
+| Command | Question |
+|---|---|
+| `/beacon value` | **What value does this project create, and what can we honestly claim?** |
+| `/beacon` | **Where is the pull, and what is the one next move to reach people?** |
+| `/beacon record` | What did the last experiment produce (reply quality L0–L3)? |
+
+## `/beacon value`: the value map
+
+A feature list is not value. Beacon traces each value as **problem →
+capability → user outcome → why it matters → proof**, and labels how
+strongly it can be claimed:
+- ● **demonstrated**: a test, benchmark or command output shows it;
+- ◐ **supported**: the code does it, with no outside measurement;
+- ○ **hypothesis**: a guess worth testing.
+
+Then it connects inside to outside:
+- which values answer pains people have actually posted;
+- which capabilities support no value at all;
+- which pains no value answers.
+
+It ends with a recommended first screen: what to lead with, what to support
+it with, what to keep under Advanced, and **what to stop saying**, with the
+line where each unsupported claim is made.
+
+[![Beacon value map for TypedMem: lead with "know which value is current without deleting the old one" (demonstrated: LongMemEval history 0/11 to 11/11); a bridge linking values to observed pains; recall and HTTP support no value; stop saying "hallucinations"](docs/example-value.png)](docs/example-value.png)
+
+## `/beacon`: where is the pull
+
+Run `/beacon` in a project's repository and the agent investigates, rather
+than brainstorms:
 
 1. **Positioning gate.** Can the problem, the failure, the product, the
    proof and the boundary each be stated with evidence? If not, it stops:

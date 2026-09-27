@@ -65,3 +65,41 @@
   `failure`; `not_this_round` needs ≥1 item.
 - No key anywhere may be a score or percentage (`score`, `pmf`, `percent`,
   `probability`). Say what was observed instead.
+
+---
+
+# `.beacon/value.json` format (version 1), written by `/beacon value`
+
+```json
+{
+  "version": 1,
+  "product": {"name": "typedmem", "repo": "lyr-ai/typedmem", "date": "2026-09-27"},
+  "problem": {"text": "Facts an agent relies on change over time.", "evidence": [{"file": "README.md", "line": 5}]},
+  "capabilities": [
+    {"id": "state", "name": "set / get / history", "evidence": [{"file": "typedmem/agent.py", "line": 236}]}
+  ],
+  "values": [
+    {"id": "V1", "outcome": "Know which value is current without deleting the old one",
+     "why": "The agent doesn't act on stale state", "capabilities": ["state"], "level": "demonstrated",
+     "proof": [{"level": "confirmed", "kind": "command", "claim": "LongMemEval KU history 0/11 → 11/11",
+                "command": "reliagent-bench@df0ebc6 external/run_longmemeval_ku.py", "exit_code": 0, "output": "v9_states 65/65"}],
+     "pains": ["P1"]}
+  ],
+  "first_screen": {
+    "lead": ["V1"], "support": ["V2"], "trust": ["V3"],
+    "advanced": [{"capability": "profiles", "reason": "Depth, but no observed pain"}],
+    "stop_saying": [{"claim": "Contract-driven memory", "file": "README.md", "line": 105, "reason": "No value or pain supports leading with it"}]
+  }
+}
+```
+
+## Rules (checked by `validate.py --value`)
+
+- Every capability has an `id`, a `name`, and ≥1 locator (`file` + `line` that exist, or a `url`).
+- Every value has an `outcome`, a `why`, a `level` ∈ `demonstrated | supported | hypothesis`, and `capabilities` that exist.
+  - `demonstrated`: ≥1 `proof` item with `level: confirmed` and a locator.
+  - `supported`: every capability it relies on has a locator (already required), and no `confirmed` proof is claimed.
+  - `hypothesis`: no proof required.
+- `pains` must exist in `.beacon/launch.json`, when it is present.
+- `first_screen` references existing ids. `lead` has exactly one value, and it can't be a `hypothesis`. Every `stop_saying` item has a locator.
+- No score-like keys.

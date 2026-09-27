@@ -1,6 +1,7 @@
 """Validate .beacon/launch.json (Beacon, phase 6).
 
     python3 validate.py .beacon/launch.json [--repo .]
+    python3 validate.py --value .beacon/value.json [--repo .]
 
 Checks the positioning gate, that sources and phrases attributed to people
 are real (verbatim quotes are matched against the raw text in
@@ -171,6 +172,108 @@ def validate(doc: dict, repo: Path, raw: dict[str, dict]) -> list[str]:
     return errs
 
 
+LEVELS = ("demonstrated", "supported", "hypothesis")
+
+
+def has_loc(ev: dict) -> bool:
+    return bool(ev.get("file") or ev.get("url") or ev.get("commit") or ev.get("issue")
+                or ("command" in ev and "exit_code" in ev))
+
+
+def validate_value(doc: dict, repo: Path, launch: dict | None) -> list[str]:
+    errs = banned_keys(doc)
+    if doc.get("version") != 1:
+        errs.append("version must be 1")
+    prob = doc.get("problem") or {}
+    if not (prob.get("text") or "").strip():
+        errs.append("problem: missing text")
+    for j, ev in enumerate(prob.get("evidence") or []):
+        why = locator_ok(ev, repo) if ev.get("file") else None
+        if why:
+            errs.append(f"problem.evidence[{j}]: {why}")
+    caps = {}
+    for c in doc.get("capabilities") or []:
+        w = f"capability {c.get('id')}"
+        if not (c.get("id") and c.get("name")):
+            errs.append(f"{w}: needs id and name")
+        if c.get("id") in caps:
+            errs.append(f"{w}: duplicate id")
+        caps[c.get("id")] = c
+        evs = c.get("evidence") or []
+        if not evs:
+            errs.append(f"{w}: needs a code or doc locator")
+        for j, ev in enumerate(evs):
+            why = locator_ok(ev, repo)
+            if why:
+                errs.append(f"{w}.evidence[{j}]: {why}")
+    pains = {p.get("id") for p in (launch or {}).get("pains") or []}
+    vals = {}
+    for v in doc.get("values") or []:
+        w = f"value {v.get('id')}"
+        vals[v.get("id")] = v
+        for k in ("outcome", "why"):
+            if not (v.get(k) or "").strip():
+                errs.append(f"{w}: missing {k}")
+        lv = v.get("level")
+        if lv not in LEVELS:
+            errs.append(f"{w}: level must be one of {LEVELS}")
+        if not v.get("capabilities"):
+            errs.append(f"{w}: name the capabilities that deliver it")
+        for c in v.get("capabilities") or []:
+            if c not in caps:
+                errs.append(f"{w}: unknown capability {c}")
+        proof = v.get("proof") or []
+        confirmed = [x for x in proof if x.get("level") == "confirmed"]
+        for j, x in enumerate(proof):
+            if not has_loc(x):
+                errs.append(f"{w}.proof[{j}]: needs a locator (file/url/commit/issue/command)")
+            elif x.get("file"):
+                why = locator_ok(x, repo)
+                if why:
+                    errs.append(f"{w}.proof[{j}]: {why}")
+        if lv == "demonstrated" and not confirmed:
+            errs.append(f"{w}: demonstrated needs a confirmed proof (test, benchmark or command output)")
+        if lv in ("supported", "hypothesis") and confirmed:
+            errs.append(f"{w}: has confirmed proof; call it demonstrated, or remove the proof")
+        if launch is not None:
+            for pid in v.get("pains") or []:
+                if pid not in pains:
+                    errs.append(f"{w}: unknown pain {pid} (not in .beacon/launch.json)")
+    fs = doc.get("first_screen") or {}
+    if fs:
+        lead = fs.get("lead") or []
+        if len(lead) != 1:
+            errs.append("first_screen.lead: exactly one value")
+        for vid in lead:
+            if vals.get(vid, {}).get("level") == "hypothesis":
+                errs.append(f"first_screen.lead: {vid} is a hypothesis; lead with a demonstrated or supported value")
+        for part in ("lead", "support", "trust"):
+            for vid in fs.get(part) or []:
+                if vid not in vals:
+                    errs.append(f"first_screen.{part}: unknown value {vid}")
+        for a in fs.get("advanced") or []:
+            if a.get("capability") not in caps:
+                errs.append(f"first_screen.advanced: unknown capability {a.get('capability')}")
+            if not a.get("reason"):
+                errs.append("first_screen.advanced: each item needs a reason")
+        for j, x in enumerate(fs.get("stop_saying") or []):
+            if not x.get("reason"):
+                errs.append(f"first_screen.stop_saying[{j}]: needs a reason")
+            why = locator_ok(x, repo) if (x.get("file") or x.get("url")) else "needs the locator where the claim is made"
+            if why:
+                errs.append(f"first_screen.stop_saying[{j}]: {why}")
+    return errs
+
+
+def coverage(doc: dict) -> dict[str, list[str]]:
+    """capability id -> the value ids it supports (derived, never typed)."""
+    cov = {c["id"]: [] for c in doc.get("capabilities") or [] if "id" in c}
+    for v in doc.get("values") or []:
+        for c in v.get("capabilities") or []:
+            cov.setdefault(c, []).append(v.get("id"))
+    return cov
+
+
 def summary(doc: dict) -> str:
     by_id = {s["id"]: s for s in doc.get("sources") or [] if "id" in s}
     parts = [f"{p['id']}: {independent_authors(p, by_id)} independent author(s)" for p in doc.get("pains") or []]
@@ -183,6 +286,22 @@ def main(argv: list[str]) -> int:
     if not argv:
         print("usage: validate.py .beacon/launch.json [--repo .]")
         return 2
+    if "--value" in argv:
+        path = Path(argv[argv.index("--value") + 1])
+        repo = Path(argv[argv.index("--repo") + 1]) if "--repo" in argv else path.resolve().parent.parent
+        doc = json.loads(path.read_text())
+        lp = path.parent / "launch.json"
+        errs = validate_value(doc, repo, json.loads(lp.read_text()) if lp.exists() else None)
+        for e in errs:
+            print(e)
+        if not errs:
+            vals = doc.get("values") or []
+            tally = ", ".join(f"{sum(v.get('level') == l for v in vals)} {l}" for l in LEVELS)
+            orphan_caps = [c for c, vs in coverage(doc).items() if not vs]
+            no_pain = [v["id"] for v in vals if not v.get("pains")]
+            print(f"ok: {len(vals)} values ({tally}); capabilities supporting no value: {orphan_caps or 'none'}; "
+                  f"values answering no observed pain: {no_pain or 'none'}")
+        return 1 if errs else 0
     path = Path(argv[0])
     repo = Path(argv[argv.index("--repo") + 1]) if "--repo" in argv else path.resolve().parent.parent
     doc = json.loads(path.read_text())

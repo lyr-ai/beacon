@@ -126,3 +126,67 @@ def test_render_gate_stop():
     d.pop("experiment")
     html = render.render(d, [])
     assert "Not ready for go-to-market" in html and "No proof yet" in html
+
+
+# ── value mode ──────────────────────────────────────────────────────────
+EXV = json.loads((Path(__file__).parent / "example_value.json").read_text())
+
+
+def value_fixture():
+    """The TypedMem value map, re-pointed at the throwaway repo's files."""
+    v = copy.deepcopy(EXV)
+    def fix(ev):
+        if ev.get("file"):
+            ev.update(file="README.md", line=5)
+    for c in v["capabilities"]:
+        for ev in c["evidence"]:
+            fix(ev)
+    for x in v["values"]:
+        for ev in x.get("proof") or []:
+            fix(ev)
+    for ev in v["problem"]["evidence"]:
+        fix(ev)
+    for s in v["first_screen"]["stop_saying"]:
+        fix(s)
+    return v
+
+
+def test_example_value_valid(repo):
+    assert validate.validate_value(value_fixture(), repo, EX) == []
+
+
+def _val(v, vid):
+    return next(x for x in v["values"] if x["id"] == vid)
+
+
+@pytest.mark.parametrize("mutate,needle", [
+    (lambda v: _val(v, "V1").update(proof=[]), "demonstrated needs a confirmed proof"),
+    (lambda v: _val(v, "V4").update(proof=[{"level": "confirmed", "kind": "test", "claim": "x", "file": "README.md", "line": 1}]), "call it demonstrated"),
+    (lambda v: _val(v, "V1").update(level="certain"), "level must be one of"),
+    (lambda v: _val(v, "V1").update(capabilities=["nope"]), "unknown capability nope"),
+    (lambda v: _val(v, "V1").update(pains=["P9"]), "unknown pain P9"),
+    (lambda v: v["first_screen"].update(lead=["V7"]), "is a hypothesis"),
+    (lambda v: v["first_screen"].update(lead=["V1", "V2"]), "exactly one value"),
+    (lambda v: v["first_screen"]["stop_saying"][0].pop("file"), "where the claim is made"),
+    (lambda v: v["capabilities"][0].update(evidence=[]), "needs a code or doc locator"),
+    (lambda v: v.update(value_score=9), "no scores"),
+])
+def test_value_rules_reject(repo, mutate, needle):
+    v = value_fixture()
+    mutate(v)
+    errs = validate.validate_value(v, repo, EX)
+    assert any(needle in e for e in errs), errs
+
+
+def test_coverage_is_derived_and_finds_orphans():
+    cov = validate.coverage(EXV)
+    assert cov["recall"] == [] and cov["http"] == [] and "V1" in cov["state"]
+
+
+def test_render_value_map_bridge_and_first_screen():
+    html = render.render(copy.deepcopy(EX), [], copy.deepcopy(EXV))
+    assert html.index("What value does typedmem create?") < html.index("Where is the pull for typedmem?")
+    assert "Inside ↔ outside" in html and "no value answers this" in html      # P3 is unanswered
+    assert "supports no value" in html and "Stop saying" in html
+    only = render.render(None, [], copy.deepcopy(EXV))
+    assert "What value does typedmem create?" in only and "Where is the pull" not in only

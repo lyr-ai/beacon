@@ -62,6 +62,23 @@ pre.msg{white-space:pre-wrap;font:400 14.5px/1.6 var(--sans);background:var(--pa
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 ul{margin:0;padding-left:18px;font:400 14.5px/1.55 var(--sans)}
 .legend{font:400 12px var(--mono);color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 0}
+.vproblem{font:400 22px/1.35 var(--serif);text-align:center;margin:8px auto 0;max-width:36ch}
+.vstem{width:1px;height:22px;background:var(--rule);margin:0 auto}
+.vrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;border-top:1px solid var(--rule);padding-top:14px}
+.vcard{padding:10px 0}.vcard .role{font:600 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.vcard .role.lead{color:var(--sage)}
+.vcard .o{font:400 19px/1.3 var(--serif);margin:4px 0}.vcard .y{font:400 14px/1.5 var(--sans);color:var(--muted)}
+.lv{font:600 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.lv.demonstrated{color:var(--sage)}.lv.supported{color:var(--ochre)}.lv.hypothesis{color:var(--muted)}
+.vcard.hypothesis .o{font-style:italic;color:var(--muted)}
+.cov{border-collapse:collapse;font:400 13px var(--sans);width:100%;margin:6px 0}
+.cov th{font:500 10.5px var(--mono);letter-spacing:.06em;color:var(--muted);padding:5px 6px;text-align:center}
+.cov th.c{text-align:left;font:400 14px var(--serif);color:var(--ink)}
+.cov td{text-align:center;border-top:1px solid var(--rule);padding:5px 6px;font:600 14px var(--mono)}
+.cov tr.orphan th.c{color:var(--cinnabar)}
+.fs{display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px 16px;font:400 15px/1.5 var(--sans)}
+.fs .k{font:500 11px/1.9 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.fs .k.lead{color:var(--sage)}.fs .k.stop{color:var(--cinnabar)}.fs a,.vcard a{color:inherit}
 .foot{font:400 12.5px/1.6 var(--mono);color:var(--muted);margin-top:40px;border-top:1px solid var(--rule);padding-top:14px}
 @media (max-width:620px){h1{font-size:30px}.pos{grid-template-columns:1fr}.cols{grid-template-columns:1fr}}
 """
@@ -83,7 +100,124 @@ def quote(s: dict) -> str:
     return f'<div class="{cls}">{txt}<span class="who">{who} · <a href="{e(s.get("url"))}">source</a></span></div>'
 
 
-def render(doc: dict, history: list[dict]) -> str:
+LEVEL_GLYPH = {"demonstrated": "●", "supported": "◐", "hypothesis": "○"}
+
+
+def _authors(pain: dict, by_id: dict) -> int:
+    return len({(by_id[s]["platform"], by_id[s]["author"].lower()) for s in pain.get("source_ids", []) if s in by_id})
+
+
+def value_section(v: dict, launch: dict | None) -> str:
+    web = f"https://github.com/{v['product']['repo']}" if v.get("product", {}).get("repo") else None
+    caps = {c["id"]: c for c in v.get("capabilities") or []}
+    vals = v.get("values") or []
+    fs = v.get("first_screen") or {}
+    role = {}
+    for part in ("lead", "support", "trust"):
+        for vid in fs.get(part) or []:
+            role[vid] = part
+    order = sorted(vals, key=lambda x: (["lead", "support", "trust"].index(role[x["id"]]) if x["id"] in role else 3,
+                                        list(LEVEL_GLYPH).index(x.get("level", "hypothesis"))))
+    by_id = {s["id"]: s for s in (launch or {}).get("sources") or []}
+    pains = {p["id"]: p for p in (launch or {}).get("pains") or []}
+    out = [f'<p class="vproblem">{e((v.get("problem") or {}).get("text"))}</p><div class="vstem"></div><div class="vrow">']
+    for x in order:
+        chips = " ".join(f'<span class="fig" style="border:1px solid var(--rule);padding:0 5px;border-radius:3px">{e(caps.get(c, {}).get("name", c))}</span>'
+                         for c in x.get("capabilities") or [])
+        proof = "".join(f'<li>{e(p.get("claim"))}{loc(p, web) if (p.get("file") or p.get("url")) else ""}'
+                        + (f'<span class="loc" style="display:block;font:400 11.5px var(--mono);color:var(--muted)">$ {e(p.get("command"))} → {e(p.get("output"))}</span>' if p.get("command") else "")
+                        + "</li>" for p in x.get("proof") or [])
+        pl = ", ".join(f"{pid} ({_authors(pains[pid], by_id)} people)" for pid in x.get("pains") or [] if pid in pains)
+        out.append(f"""<div class="vcard {e(x.get('level'))}"><div class="role {e(role.get(x['id'], ''))}">{e(role.get(x['id'], 'value'))} · {e(x['id'])}</div>
+<div class="o">{e(x.get('outcome'))}</div><div class="y">{e(x.get('why'))}</div>
+<div style="margin-top:6px"><span class="lv {e(x.get('level'))}">{LEVEL_GLYPH.get(x.get('level'), '?')} {e(x.get('level'))}</span></div>
+<details><summary>How and proof</summary><div style="margin:6px 0">{chips}</div>{f'<ul>{proof}</ul>' if proof else '<p class="y">No outside measurement.</p>'}
+{f'<p class="y">Answers: {e(pl)}</p>' if pl else '<p class="y">Answers no observed pain.</p>'}</details></div>""")
+    out.append("</div>")
+    out.append('<div class="legend"><span>● demonstrated: test, benchmark or command proof</span><span>◐ supported: code, no outside measurement</span><span>○ hypothesis: a guess worth testing</span></div>')
+
+    # inside ↔ outside bridge
+    if launch:
+        pl = sorted(pains.values(), key=lambda p: -_authors(p, by_id))
+        left = order
+        rowh, W = 46, 860
+        H = max(len(left), len(pl)) * rowh + 40
+        lx, rx = 300, W - 300
+        ly = {x["id"]: 42 + i * rowh for i, x in enumerate(left)}
+        ry = {p["id"]: 42 + i * rowh for i, p in enumerate(pl)}
+        svg = [f'<svg viewBox="0 0 {W} {H}" style="width:100%;height:auto;display:block;margin-top:8px" role="img" aria-label="Values linked to observed pains">']
+        linked_p = set()
+        for x in left:
+            for pid in x.get("pains") or []:
+                if pid in ry:
+                    linked_p.add(pid)
+                    y1, y2 = ly[x["id"]], ry[pid]
+                    svg.append(f'<path d="M{lx + 8},{y1} C{lx + 110},{y1} {rx - 110},{y2} {rx - 8},{y2}" fill="none" stroke="var(--sage)" stroke-width="1.8" opacity=".8"/>')
+        for x in left:
+            y = ly[x["id"]]
+            fill = "var(--ink)" if x.get("pains") else "var(--muted)"
+            txt = (x.get("outcome") or "")[:40] + ("…" if len(x.get("outcome") or "") > 40 else "")
+            svg.append(f'<text x="{lx - 8}" y="{y + 4}" text-anchor="end" font-family="Newsreader,Georgia,serif" font-size="15" fill="{fill}">{e(txt)}</text>')
+            cx, lvl = lx + 4, x.get("level")
+            if lvl == "demonstrated":      # ● filled
+                svg.append(f'<circle cx="{cx}" cy="{y}" r="5" fill="{fill}"/>')
+            elif lvl == "supported":       # ◐ half-filled
+                svg.append(f'<circle cx="{cx}" cy="{y}" r="5" fill="var(--paper)" stroke="{fill}" stroke-width="1.5"/>'
+                           f'<path d="M{cx},{y - 5} A5,5 0 0,0 {cx},{y + 5} Z" fill="{fill}"/>')
+            else:                          # ○ hollow
+                svg.append(f'<circle cx="{cx}" cy="{y}" r="5" fill="var(--paper)" stroke="{fill}" stroke-width="1.5"/>')
+            if not x.get("pains"):
+                svg.append(f'<text x="{lx + 16}" y="{y + 4}" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--muted)">? no observed pain</text>')
+        for p in pl:
+            y = ry[p["id"]]
+            n = _authors(p, by_id)
+            txt = (p.get("statement") or "")[:44] + ("…" if len(p.get("statement") or "") > 44 else "")
+            col = "var(--ink)" if p["id"] in linked_p else "var(--cinnabar)"
+            svg.append(f'<circle cx="{rx - 4}" cy="{y}" r="4.5" fill="{col}"/>')
+            svg.append(f'<text x="{rx + 6}" y="{y + 4}" font-family="Newsreader,Georgia,serif" font-size="15" fill="{col}">{e(txt)}</text>')
+            svg.append(f'<text x="{rx + 6}" y="{y + 18}" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="var(--muted)">{e(p["id"])} · {n} people{"" if p["id"] in linked_p else " · no value answers this"}</text>')
+        svg.append(f'<text x="{lx - 6}" y="12" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10.5" letter-spacing="1.5" fill="var(--muted)">WHAT WE PROVIDE</text>')
+        svg.append(f'<text x="{rx + 6}" y="12" font-family="IBM Plex Mono,monospace" font-size="10.5" letter-spacing="1.5" fill="var(--muted)">WHAT PEOPLE ASK FOR</text>')
+        svg.append("</svg>")
+        out.append("<h2>Inside ↔ outside: which values meet observed pain</h2>" + "".join(svg)
+                   + '<div class="legend"><span>node: ● demonstrated · ◐ supported · ○ hypothesis</span><span>a line = the value answers that pain</span>'
+                   '<span style="color:var(--cinnabar)">red = a pain no value answers</span></div>')
+
+    # coverage
+    cov = {c: [] for c in caps}
+    for x in vals:
+        for c in x.get("capabilities") or []:
+            cov.setdefault(c, []).append(x["id"])
+    head = "".join(f'<th title="{e(x.get("outcome"))}">{e(x["id"])}</th>' for x in order)
+    orphan_tag = ' <span class="fig" style="color:var(--cinnabar)">supports no value</span>'
+    rows = ""
+    for cid, c in caps.items():
+        used = cov.get(cid, [])
+        cells = "".join("<td>" + ("●" if x["id"] in used else "") + "</td>" for x in order)
+        rows += ('<tr class="' + ("" if used else "orphan") + '"><th class="c">' + e(c.get("name"))
+                 + ("" if used else orphan_tag) + "</th>" + cells + "</tr>")
+    out.append(f'<h2>Feature → value coverage</h2><table class="cov"><tr><th></th>{head}</tr>{rows}</table>')
+
+    # first screen
+    if fs:
+        vname = {x["id"]: x.get("outcome") for x in vals}
+        rowsfs = []
+        for part, label in (("lead", "Lead with"), ("support", "Support"), ("trust", "Trust")):
+            if fs.get(part):
+                rowsfs.append(f'<div class="k {part}">{label}</div><div>{"<br>".join(e(vname.get(i, i)) for i in fs[part])}</div>')
+        if fs.get("advanced"):
+            rowsfs.append('<div class="k">Advanced, don\'t lead</div><div>' + "<br>".join(
+                f'{e(caps.get(a["capability"], {}).get("name", a["capability"]))} <span style="color:var(--muted)">— {e(a.get("reason"))}</span>' for a in fs["advanced"]) + "</div>")
+        if fs.get("stop_saying"):
+            rowsfs.append('<div class="k stop">Stop saying</div><div>' + "<br>".join(
+                f'“{e(x.get("claim"))}” <span style="color:var(--muted)">{loc(x, web)} — {e(x.get("reason"))}</span>' for x in fs["stop_saying"]) + "</div>")
+        out.append('<h2>Recommended first screen</h2><div class="fs">' + "".join(rowsfs) + "</div>")
+    return "\n".join(out)
+
+
+def render(doc: dict | None, history: list[dict], value: dict | None = None) -> str:
+    if doc is None:
+        doc = {"product": (value or {}).get("product", {}), "gate": None, "sources": [], "pains": []}
     prod = doc.get("product", {})
     name = prod.get("name", "this project")
     web = f"https://github.com/{prod['repo']}" if prod.get("repo") else None
@@ -95,7 +229,16 @@ def render(doc: dict, history: list[dict]) -> str:
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>{CSS}</style></head><body><main>
 <div class="fig">Beacon · {e(name)} · {e(prod.get('date', ''))}</div>
-<h1>Where is the pull for {e(name)}?</h1>"""]
+<h1>{"What value does " + e(name) + " create?" if value else "Where is the pull for " + e(name) + "?"}</h1>"""]
+    if value:
+        vals = value.get("values") or []
+        tally = ", ".join(f"{sum(x.get('level') == l for x in vals)} {l}" for l in LEVEL_GLYPH)
+        out.append(f'<p class="lede">{len(vals)} values ({tally}), each traced from a capability to a user outcome and its proof.</p>')
+        out.append(value_section(value, doc if doc.get("pains") else None))
+        if doc.get("gate") is None:
+            out.append("<p class=\"foot\">Generated by Beacon (value).</p></main></body></html>")
+            return "\n".join(out)
+        out.append(f'<h2 style="font-size:32px;border-top:2px solid var(--ink)">Where is the pull for {e(name)}?</h2>')
     pains = doc.get("pains") or []
     authors = {(by_id[s]["platform"], by_id[s]["author"].lower()) for p in pains for s in p.get("source_ids", []) if s in by_id}
     verb = sum(1 for s in by_id.values() if s.get("verbatim"))
@@ -177,13 +320,21 @@ def render(doc: dict, history: list[dict]) -> str:
 
 def main(argv: list[str]) -> int:
     if not argv:
-        print("usage: render.py .beacon/launch.json [--history DIR] -o report.html")
+        print("usage: render.py .beacon/launch.json | --value .beacon/value.json [--history DIR] -o report.html")
         return 2
-    doc = json.loads(Path(argv[0]).read_text())
-    hdir = Path(argv[argv.index("--history") + 1]) if "--history" in argv else Path(argv[0]).parent / "history"
+    if "--value" in argv:
+        vpath = Path(argv[argv.index("--value") + 1]); base = vpath.parent
+        lp = base / "launch.json"
+        doc = json.loads(lp.read_text()) if lp.exists() else None
+    else:
+        base = Path(argv[0]).parent
+        doc = json.loads(Path(argv[0]).read_text())
+        vpath = base / "value.json"
+    value = json.loads(vpath.read_text()) if vpath.exists() else None
+    hdir = Path(argv[argv.index("--history") + 1]) if "--history" in argv else base / "history"
     hist = [json.loads(p.read_text()) for p in sorted(hdir.glob("*.json"))] if hdir.exists() else []
     outp = Path(argv[argv.index("-o") + 1]) if "-o" in argv else Path("report.html")
-    outp.write_text(render(doc, hist))
+    outp.write_text(render(doc, hist, value))
     print(f"wrote {outp}")
     return 0
 
