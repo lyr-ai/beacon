@@ -190,3 +190,51 @@ def test_render_value_map_bridge_and_first_screen():
     assert "no mapped value" in html and "Stop saying" in html
     only = render.render(None, [], copy.deepcopy(EXV))
     assert "What value does typedmem create?" in only and "Where is the pull" not in only
+
+
+# ── report v2: five scenes, evidence on demand ──────────────────────────
+import re as _re
+
+
+def _default_view(html):
+    """Everything a reader sees before opening the evidence or a panel."""
+    main = html[:html.index('<details class="evidence">')]
+    return _re.sub(r"<template.*?</template>", "", main, flags=_re.S)
+
+
+def test_v2_has_five_scenes_in_order_and_evidence_behind_a_click():
+    html = render.render(copy.deepcopy(EX), [], copy.deepcopy(EXV))
+    acts = [m for m in _re.findall(r'<div class="act">(\d) · (\w+)</div>', _default_view(html))]
+    assert acts == [("1", "Value"), ("2", "Pull"), ("3", "Coverage"), ("4", "Story"), ("5", "Move")]
+    ev = html[html.index('<details class="evidence">'):]
+    assert "Where is the pull for typedmem?" in ev and "In their words" not in _default_view(html)
+
+
+def test_v2_default_view_has_no_long_paragraphs():
+    """Design rule: no paragraph longer than about two lines in the default view."""
+    for doc, val in ((EX, EXV), (None, EXV)):
+        view = _default_view(render.render(copy.deepcopy(doc) if doc else None, [], copy.deepcopy(val)))
+        for p in _re.findall(r"<p(?:\s[^>]*)?>(.*?)</p>", view, flags=_re.S):
+            text = _re.sub(r"<[^>]+>", "", p)
+            assert len(text) <= 180, text
+
+
+def test_v2_encodes_conclusions_visually():
+    view = _default_view(render.render(copy.deepcopy(EX), [], copy.deepcopy(EXV)))
+    assert 'data-d="V1"' in view and 'data-d="P1"' in view            # clickable nodes
+    assert "no mapped value" in view and "NO MAPPED VALUE" in view    # unanswered pain, orphan capability
+    assert "STOP SAYING" in view and '<div class="mv goal">' in view  # story and move
+    assert view.count('stroke-width="') > 5                           # bridge line widths
+
+
+def test_v2_every_value_and_pain_has_a_detail_panel():
+    html = render.render(copy.deepcopy(EX), [], copy.deepcopy(EXV))
+    for x in EXV["values"]:
+        assert f'<template id="d-{x["id"]}">' in html
+    for p in EX["pains"]:
+        assert f'<template id="d-{p["id"]}">' in html
+
+
+def test_v2_without_market_evidence_says_so_in_one_line():
+    view = _default_view(render.render(None, [], copy.deepcopy(EXV)))
+    assert "No market evidence yet" in view and "No experiment yet" in view

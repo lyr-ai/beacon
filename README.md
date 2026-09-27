@@ -29,7 +29,13 @@ It ends with a recommended first screen: what to lead with, what to support
 it with, what to keep under Advanced, and **what to stop saying**, with the
 line where each unsupported claim is made.
 
-[![Beacon value map for TypedMem: lead with "know which value is current without deleting the old one" (demonstrated: LongMemEval history 0/11 to 11/11); a bridge linking values to observed pains; recall and HTTP have no mapped value; stop saying "hallucinations"](docs/example-value.png)](docs/example-value.png)
+The report reads as five pictures: **Value** (what the project gives a
+user), **Pull** (which values meet real pain), **Coverage** (what each
+feature is for), **Story** (what the first screen should say) and **Move**
+(the one next experiment). Click any node for its proof and quotes; the full
+evidence sits under "See the evidence".
+
+[![Beacon report for TypedMem. Value: lead with "know which value is current, without deleting the old one", with support, trust and "also true" values around it. Pull: line width shows how many people have each pain; one pain (red) has no mapped value](docs/example-value.png)](docs/example-value.png)
 
 ## `/beacon`: where is the pull
 
