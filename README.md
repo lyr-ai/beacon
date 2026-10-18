@@ -131,4 +131,5 @@ how to reach them). When `.heed/project.json` exists, Beacon starts from
 that confirmed goal.
 
 Also from lyr-ai: [TypedMem](https://github.com/lyr-ai/typedmem) ·
-[AgentSeism](https://github.com/lyr-ai/agentseism). MIT licensed.
+[AgentSeism](https://github.com/lyr-ai/agentseism) ·
+[ResearchLedger](https://researchledger.app/) (open problems in AI agents, each linked to the papers that state it). MIT licensed.
